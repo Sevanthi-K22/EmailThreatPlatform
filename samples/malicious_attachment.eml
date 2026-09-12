@@ -1,0 +1,33 @@
+From: "Billing Department" <billing@global-logistics-corp.com>
+To: accounting@company.com
+Subject: OVERDUE INVOICE: Action required within 24 hours
+Date: Sat, 12 Sep 2026 14:15:00 +0530
+Message-ID: <invoice-9928172@global-logistics-corp.com>
+Received: from mail.global-logistics-corp.com (198.51.100.55)
+    by mail.company.com;
+Content-Type: multipart/mixed; boundary="BOUNDARY_ATTACHMENT_TEST"
+MIME-Version: 1.0
+
+--BOUNDARY_ATTACHMENT_TEST
+Content-Type: text/plain; charset="utf-8"
+
+Dear Customer,
+
+Your payment of $4,850.00 is severely overdue.
+Action is required immediately to prevent legal collections.
+
+Please review the attached invoice document immediately:
+Invoice_Payment_Order_Sep2026.pdf.exe
+
+Thank you,
+Accounts Receivable Team
+
+--BOUNDARY_ATTACHMENT_TEST
+Content-Type: application/x-msdownload; name="Invoice_Payment_Order_Sep2026.pdf.exe"
+Content-Disposition: attachment; filename="Invoice_Payment_Order_Sep2026.pdf.exe"
+Content-Transfer-Encoding: base64
+
+TVqQAAMAAAAEAAAA//8AALgAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAA2AAAAA4fug4AtAnNIbgBTM0hVGhpcyBwcm9ncmFtIGNhbm5vdCBiZSBydW4gaW4gRE9TIG1v
+ZGUuDQ0KJAAAAAAAAAA=
+--BOUNDARY_ATTACHMENT_TEST--

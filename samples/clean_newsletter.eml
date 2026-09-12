@@ -1,0 +1,30 @@
+From: "Tech Weekly Digest" <newsletter@techweekly.org>
+To: subscriber@example.com
+Subject: Tech Weekly #412: Highlights of the Week
+Date: Sat, 12 Sep 2026 09:00:00 +0530
+Message-ID: <issue-412-2026@techweekly.org>
+Authentication-Results: mx.example.com;
+    spf=pass (mx.example.com: domain of techweekly.org designates 192.0.2.80 as permitted sender) smtp.mailfrom=newsletter@techweekly.org;
+    dkim=pass header.i=@techweekly.org;
+    dmarc=pass (p=NONE) header.from=techweekly.org
+Received-SPF: pass (mx.example.com: domain of techweekly.org designates 192.0.2.80 as permitted sender)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=techweekly.org; s=2026;
+Received: from mail.techweekly.org (192.0.2.80)
+    by mx.example.com;
+Content-Type: text/plain; charset="utf-8"
+
+Welcome to this week's edition of Tech Weekly!
+
+Here are the top stories we covered this week:
+- New advancements in quantum computing
+- Best practices for modern web application architecture
+- Open source community updates
+
+Read the full articles on our website:
+https://techweekly.org/issues/412
+
+To manage your preferences or unsubscribe, visit:
+https://techweekly.org/preferences
+
+Have a great weekend!
+The Editorial Team

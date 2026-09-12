@@ -1,0 +1,28 @@
+From: "PayPal Security Alerts" <service@paypa1-security-center.xyz>
+Reply-To: phish-collector@disposable-inbox.top
+To: victim@example.com
+Subject: URGENT: Your PayPal account has been locked
+Date: Sat, 12 Sep 2026 11:45:00 +0530
+Message-ID: <paypal-alert-883716@paypa1-security-center.xyz>
+Authentication-Results: mx.example.com;
+    spf=fail (sender IP 185.220.101.5 is not permitted) smtp.mailfrom=service@paypa1-security-center.xyz;
+    dkim=fail header.i=@paypa1-security-center.xyz;
+    dmarc=fail (p=REJECT) header.from=paypal.com
+Received-SPF: fail (mx.example.com: domain of paypa1-security-center.xyz does not designate 185.220.101.5 as permitted sender)
+Received: from suspicious-relay.example (185.220.101.5)
+    by mx.example.com;
+Content-Type: text/plain; charset="utf-8"
+
+URGENT SECURITY ALERT!
+
+Your PayPal account has been temporarily restricted due to unauthorized login attempts.
+You must verify your identity and account password immediately.
+
+If you do not confirm your account credentials within 24 hours,
+your account will be permanently suspended and all funds locked.
+
+Click here to restore your account:
+https://paypa1-security-center.xyz/restore-account
+
+Thank you for helping us keep PayPal safe.
+Security Operations Team

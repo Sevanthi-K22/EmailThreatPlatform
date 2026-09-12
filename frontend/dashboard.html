@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Email Threat Intelligence | SOC Investigation Platform</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+
+<body>
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-icon">🛡️</div>
+
+            <div>
+                <h2>Email Threat</h2>
+                <span>Intelligence</span>
+            </div>
+
+        </div>
+
+        <div class="sidebar-line"></div>
+
+        <nav class="navigation">
+
+            <a href="#dashboard" class="nav-item active" onclick="handleNavClick(event, 'dashboard')">
+                📊
+                <span>Dashboard</span>
+            </a>
+
+            <a href="#emailForensics" class="nav-item" onclick="handleNavClick(event, 'emailForensics')">
+                🔍
+                <span>Email Forensics</span>
+            </a>
+
+            <a href="#emailContent" class="nav-item" onclick="handleNavClick(event, 'emailContent')">
+                📑
+                <span>Email Evidence</span>
+            </a>
+
+            <a href="#urlIntelligence" class="nav-item" onclick="handleNavClick(event, 'urlIntelligence')">
+                🔗
+                <span>URL Intelligence</span>
+            </a>
+
+            <a href="#geoLocation" class="nav-item" onclick="handleNavClick(event, 'geoLocation')">
+                🌍
+                <span>GeoLocation</span>
+            </a>
+
+            <a href="#threatGraph" class="nav-item" onclick="handleNavClick(event, 'threatGraph')">
+                🕸️
+                <span>Threat Graph</span>
+            </a>
+
+        </nav>
+
+        <button class="logout-button" onclick="logout()">
+            🚪 Logout
+        </button>
+
+    </aside>
+
+
+    <!-- ================= MAIN CONTENT ================= -->
+
+    <main class="main-content">
+
+        <!-- HEADER -->
+
+        <header class="page-header">
+
+            <div>
+
+                <div class="eyebrow">
+                    FORENSIC INVESTIGATION PLATFORM
+                </div>
+
+                <h1>Email Threat Intelligence</h1>
+
+                <p>
+                    AI-powered email threat detection and forensic investigation
+                </p>
+
+            </div>
+
+            <div class="header-actions">
+                <button class="header-btn secondary" id="newScanBtn" onclick="resetInvestigation()" title="Reset current investigation">
+                    🔄 New Scan
+                </button>
+                <button class="header-btn primary" id="exportReportBtn" onclick="exportReport()" title="Export or print forensic investigation report">
+                    📄 Export Report
+                </button>
+                <div class="system-status">
+                    <span class="status-dot"></span>
+                    System Online
+                </div>
+            </div>
+
+        </header>
+
+
+        <!-- ================= ANALYZE EMAIL ================= -->
+
+        <section class="section">
+
+            <div class="section-heading">
+
+                <div class="section-icon">
+                    🕵️
+                </div>
+
+                <div>
+
+                    <h2>Analyze Suspicious Email</h2>
+
+                    <p>
+                        Upload an .eml file to begin forensic analysis.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="upload-card">
+
+                <div class="upload-icon">
+                    📧
+                </div>
+
+                <div class="upload-description">
+
+                    <h3>Select Email Evidence</h3>
+
+                    <p>
+                        Upload a suspicious email file for automated analysis.
+                    </p>
+
+                    <p id="analysisMessage" class="analysis-message"></p>
+
+                </div>
+
+
+                <div class="upload-controls">
+
+                    <input
+                        type="file"
+                        id="emailFile"
+                        accept=".eml"
+                    >
+
+                    <button
+                        id="analyzeButton"
+                        onclick="analyzeEmail()"
+                    >
+                        🔍 Analyze Email
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= THREAT OVERVIEW ================= -->
+
+        <section class="section" id="dashboard">
+
+            <div class="section-heading">
+
+                <div class="section-icon">
+                    📊
+                </div>
+
+                <div>
+
+                    <h2>Threat Overview</h2>
+
+                    <p>
+                        Overall security assessment of the analyzed email
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="stats-grid">
+
+                <!-- SCORE -->
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        🎯
+                    </div>
+
+                    <div class="stat-label">
+                        Threat Score
+                    </div>
+
+                    <div class="stat-value">
+                        <span id="threatScore">---</span>
+                        <small>/ 100</small>
+                    </div>
+
+                    <div class="score-bar">
+
+                        <div
+                            id="scoreBar"
+                            class="score-fill"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- VERDICT -->
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        🚨
+                    </div>
+
+                    <div class="stat-label">
+                        Verdict
+                    </div>
+
+                    <div
+                        id="verdict"
+                        class="stat-value verdict-value"
+                    >
+                        ---
+                    </div>
+
+                    <div
+                        id="verdictDescription"
+                        class="stat-description"
+                    >
+                        Awaiting email analysis
+                    </div>
+
+                </div>
+
+
+                <!-- CONFIDENCE -->
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        🧠
+                    </div>
+
+                    <div class="stat-label">
+                        Confidence
+                    </div>
+
+                    <div class="stat-value">
+
+                        <span id="confidence">
+                            ---
+                        </span>
+
+                        <small>%</small>
+
+                    </div>
+
+                </div>
+
+
+                <!-- URLS -->
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        🔗
+                    </div>
+
+                    <div class="stat-label">
+                        URLs Detected
+                    </div>
+
+                    <div
+                        id="urlCount"
+                        class="stat-value"
+                    >
+                        ---
+                    </div>
+
+                </div>
+
+
+                <!-- IPS -->
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        🌐
+                    </div>
+
+                    <div class="stat-label">
+                        IP Addresses
+                    </div>
+
+                    <div
+                        id="ipCount"
+                        class="stat-value"
+                    >
+                        ---
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= EMAIL FORENSICS ================= -->
+
+        <section
+            class="section"
+            id="emailForensics"
+        >
+
+            <div class="section-heading">
+
+                <div class="section-icon">
+                    🔍
+                </div>
+
+                <div>
+
+                    <h2>Email Forensics</h2>
+
+                    <p>
+                        Extracted email identity and suspicious indicators
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- EMAIL INFORMATION -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    📋 Email Information
+                </div>
+
+
+                <div class="information-grid">
+
+                    <div class="information-item">
+                        <strong>Sender</strong>
+                        <span id="sender">---</span>
+                    </div>
+
+                    <div class="information-item">
+                        <strong>Recipient</strong>
+                        <span id="recipient">---</span>
+                    </div>
+
+                    <div class="information-item">
+                        <strong>Subject</strong>
+                        <span id="subject">---</span>
+                    </div>
+
+                    <div class="information-item">
+                        <strong>Date</strong>
+                        <span id="emailDate">---</span>
+                    </div>
+
+                    <div class="information-item">
+                        <strong>Message ID</strong>
+                        <span id="messageId">---</span>
+                    </div>
+
+                    <div class="information-item">
+                        <strong>Reply-To</strong>
+                        <span id="replyTo">---</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- EMAIL AUTHENTICATION STATUS -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    🔐 Email Authentication (SPF, DKIM, DMARC)
+                </div>
+
+                <div class="auth-grid" id="authStatusPanel">
+
+                    <div class="auth-card">
+                        <div class="auth-label">SPF Check</div>
+                        <div id="spfStatus" class="auth-badge neutral">NOT CHECKED</div>
+                        <small class="auth-desc">Sender Policy Framework</small>
+                    </div>
+
+                    <div class="auth-card">
+                        <div class="auth-label">DKIM Check</div>
+                        <div id="dkimStatus" class="auth-badge neutral">NOT CHECKED</div>
+                        <small class="auth-desc">Cryptographic Signature</small>
+                    </div>
+
+                    <div class="auth-card">
+                        <div class="auth-label">DMARC Check</div>
+                        <div id="dmarcStatus" class="auth-badge neutral">NOT CHECKED</div>
+                        <small class="auth-desc">Domain Alignment Policy</small>
+                    </div>
+
+                </div>
+
+                <div id="authDetails" class="auth-details-list"></div>
+
+            </div>
+
+
+            <!-- ATTACHMENTS FORENSICS -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    📎 Attachments Forensics
+                </div>
+
+                <div id="attachmentsList">
+
+                    <div class="empty-state">
+                        No attachments detected.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- SUSPICIOUS INDICATORS -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    ⚠️ Suspicious Indicators
+                </div>
+
+                <div id="indicators">
+                    <div class="empty-state">
+                        No analysis performed yet.
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- EXTRACTED URLS -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    🔗 Extracted URLs
+                </div>
+
+                <div id="extractedUrls">
+
+                    <div class="empty-state">
+                        No URLs detected.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- EXTRACTED IPS -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    🌐 Extracted IP Addresses
+                </div>
+
+                <div id="extractedIPs">
+
+                    <div class="empty-state">
+                        No IP addresses detected.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- HEADER FORENSICS -->
+
+            <div class="panel">
+
+                <div class="panel-title">
+                    🧬 Email Header Forensics
+                </div>
+
+
+                <h3 class="sub-heading">
+                    Email Relay Path
+                </h3>
+
+                <div id="relayPath">
+
+                    <div class="empty-state">
+                        No header information available.
+                    </div>
+
+                </div>
+
+
+                <h3 class="sub-heading">
+                    IPs Found in Email Headers
+                </h3>
+
+                <div id="headerIPs">
+
+                    <div class="empty-state">
+                        No header IPs detected.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= EMAIL CONTENT & EVIDENCE ================= -->
+
+        <section
+            class="section"
+            id="emailContent"
+        >
+
+            <div class="section-heading">
+
+                <div class="section-icon">
+                    📑
+                </div>
+
+                <div>
+
+                    <h2>Email Content & Evidence</h2>
+
+                    <p>
+                        Inspect the message body, HTML content, and raw email headers
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <div class="panel-title tab-header">
+
+                    <div class="tab-buttons">
+
+                        <button
+                            class="tab-btn active"
+                            id="tabBtnPlain"
+                            onclick="switchContentTab('plain')"
+                        >
+                            Plaintext Body
+                        </button>
+
+                        <button
+                            class="tab-btn"
+                            id="tabBtnHtml"
+                            onclick="switchContentTab('html')"
+                        >
+                            Rendered HTML
+                        </button>
+
+                        <button
+                            class="tab-btn"
+                            id="tabBtnHeaders"
+                            onclick="switchContentTab('headers')"
+                        >
+                            Raw RFC 822 Headers
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div class="content-preview-area">
+
+                    <div
+                        id="tabPlain"
+                        class="tab-pane active"
+                    >
+                        <pre id="emailBodyText" class="code-preview">No email analyzed yet.</pre>
+                    </div>
+
+                    <div
+                        id="tabHtml"
+                        class="tab-pane"
+                    >
+                        <div id="emailHtmlPreview" class="html-preview-frame">No HTML content available.</div>
+                    </div>
+
+                    <div
+                        id="tabHeaders"
+                        class="tab-pane"
+                    >
+                        <pre id="rawHeadersText" class="code-preview">No headers available.</pre>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= URL INTELLIGENCE ================= -->
+
+        <section
+            class="section"
+            id="urlIntelligence"
+        >
+
+            <div class="section-heading">
+
+                <div class="section-icon">
+                    🔗
+                </div>
+
+                <div>
+
+                    <h2>URL & Domain Intelligence</h2>
+
+                    <p>
+                        Analysis of suspicious links and domains
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div id="urlAnalysis">
+
+                <div class="panel">
+
+                    <div class="empty-state">
+                        No URL analysis available yet.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= GEOLOCATION ================= -->
+
+        <section
+            class="section"
+            id="geoLocation"
+        >
+
+            <div class="section-heading">
+
+                <div class="section-icon">
+                    🌍
+                </div>
+
+                <div>
+
+                    <h2>Infrastructure GeoLocation</h2>
+
+                    <p>
+                        Approximate network infrastructure associated with extracted IP addresses
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div id="ipAnalysis">
+
+                <div class="panel">
+
+                    <div class="empty-state">
+                        No IP infrastructure analysis available yet.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="forensic-note">
+
+                <strong>⚠️ Forensic Note</strong>
+
+                <p>
+                    IP geolocation represents an approximate infrastructure
+                    or network location. It does not identify the attacker's
+                    physical location.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= THREAT GRAPH ================= -->
+
+        <section
+            class="section"
+            id="threatGraph"
+        >
+
+            <div class="section-heading">
+
+                <div class="section-icon">
+                    🕸️
+                </div>
+
+                <div>
+
+                    <h2>Threat Relationship Graph</h2>
+
+                    <p>
+                        Relationships discovered from the analyzed email
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="graph-panel">
+
+                <div id="threatGraphContainer">
+
+                    <div class="graph-empty" id="graphEmptyState">
+
+                        <div class="graph-icon">
+                            🕸️
+                        </div>
+
+                        <h3>
+                            Threat Relationship Graph
+                        </h3>
+
+                        <p>
+                            Analyze an email to visualize relationships
+                            between the sender, URLs and IP infrastructure.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="graph-legend">
+
+                    <span>
+                        📧 Email
+                    </span>
+
+                    <span>
+                        👤 Sender
+                    </span>
+
+                    <span>
+                        🔗 URL
+                    </span>
+
+                    <span>
+                        🌐 IP Infrastructure
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= FOOTER ================= -->
+
+        <footer>
+
+            Email Threat Intelligence
+            &nbsp;•&nbsp;
+            AI-Powered Cybersecurity
+            &nbsp;•&nbsp;
+            Forensic Investigation Platform
+
+        </footer>
+
+    </main>
+
+
+    <script src="js/dashboard.js"></script>
+
+</body>
+</html>
