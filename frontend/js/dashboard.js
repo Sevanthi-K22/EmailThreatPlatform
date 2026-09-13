@@ -1,1062 +1,2962 @@
-/*
-===========================================================
-EMAIL THREAT INTELLIGENCE PLATFORM
-DASHBOARD JAVASCRIPT ENGINE
-===========================================================
+/* =========================================================
+   EMAIL THREAT INTELLIGENCE - DASHBOARD.JS
+   ---------------------------------------------------------
+   Application functionality for the redesigned SOC dashboard.
+   Backend/API logic is preserved.
+   ========================================================= */
 
-Features:
-1. Session verification and authentication guard
-2. Drag-and-drop & file input .eml analysis
-3. Dynamic Threat Score bar & verdict badge styling
-4. Suspicious indicators with severity styling
-5. Email forensics (Identity, Authentication SPF/DKIM/DMARC, Attachments)
-6. Extracted URLs and IP infrastructure lists
-7. Header relay path forensics
-8. URL & domain intelligence with risk findings tags
-9. IP infrastructure geolocation & forensic disclaimer
-10. Interactive Threat Relationship Graph with SVG connector lines
-11. Multi-tab email evidence viewer (Plaintext, HTML, Raw Headers)
-12. Sidebar smooth navigation and active section tracking
-13. Investigation report export (Print/PDF)
-14. New Scan reset functionality
-===========================================================
-*/
+"use strict";
 
-// Global store for latest analysis data
-let latestAnalysis = null;
 
-// =========================================================
-// 1. SESSION GUARD & INITIALIZATION
-// =========================================================
+/* =========================================================
+   GLOBAL STATE
+   ========================================================= */
+
+let currentAnalysisData = null;
+let currentFile = null;
+let isAnalyzing = false;
+
+
+/* =========================================================
+   DOM READY
+   ========================================================= */
+
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("Dashboard JavaScript loaded.");
+
+    checkSession();
+    setupNavigation();
+    setupFileUpload();
+    setupDragAndDrop();
+    setupEvidenceTabs();
+    setupScrollSpy();
+
+    switchContentTab("plain");
+
+    console.log("Dashboard initialized successfully.");
+});
+
+
+/* =========================================================
+   SESSION
+   ========================================================= */
 
 function checkSession() {
-    const session = sessionStorage.getItem("investigator_session");
+    const session = sessionStorage.getItem(
+        "investigator_session"
+    );
+
     if (!session) {
-        window.location.href = "index.html";
+        console.warn(
+            "No investigator session found."
+        );
     }
 }
 
-// =========================================================
-// 2. ANALYZE EMAIL
-// =========================================================
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+
+function handleNavClick(
+    eventOrSectionId,
+    possibleSectionId
+) {
+    let sectionId;
+
+    if (
+        eventOrSectionId &&
+        typeof eventOrSectionId.preventDefault ===
+            "function"
+    ) {
+        eventOrSectionId.preventDefault();
+        sectionId = possibleSectionId;
+    } else {
+        sectionId = eventOrSectionId;
+    }
+
+    if (!sectionId) {
+        console.warn(
+            "No navigation section supplied."
+        );
+        return;
+    }
+
+    const section =
+        document.getElementById(sectionId);
+
+    if (!section) {
+        console.warn(
+            "Navigation section not found:",
+            sectionId
+        );
+        return;
+    }
+
+    section.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+
+    activateNavigationItem(sectionId);
+}
+
+
+function activateNavigationItem(sectionId) {
+    const navItems =
+        document.querySelectorAll(".nav-item");
+
+    navItems.forEach(function (item) {
+        item.classList.remove("active");
+
+        const href =
+            item.getAttribute("href");
+
+        const dataTarget =
+            item.getAttribute("data-target");
+
+        if (
+            dataTarget === sectionId ||
+            href === "#" + sectionId
+        ) {
+            item.classList.add("active");
+        }
+    });
+}
+
+
+function setupNavigation() {
+    const navItems =
+        document.querySelectorAll(".nav-item");
+
+    navItems.forEach(function (item) {
+
+        const hasInlineHandler =
+            item.getAttribute("onclick");
+
+        if (hasInlineHandler) {
+            return;
+        }
+
+        item.addEventListener(
+            "click",
+            function (event) {
+                event.preventDefault();
+
+                const dataTarget =
+                    item.getAttribute(
+                        "data-target"
+                    );
+
+                const href =
+                    item.getAttribute("href");
+
+                let target = dataTarget;
+
+                if (
+                    !target &&
+                    href &&
+                    href.startsWith("#")
+                ) {
+                    target =
+                        href.substring(1);
+                }
+
+                if (target) {
+                    handleNavClick(
+                        event,
+                        target
+                    );
+                }
+            }
+        );
+    });
+
+    activateNavigationItem("dashboard");
+}
+
+
+/* =========================================================
+   FILE UPLOAD
+   ========================================================= */
+
+function setupFileUpload() {
+    const fileInput =
+        document.getElementById(
+            "emailFile"
+        );
+
+    if (!fileInput) {
+        console.warn(
+            "emailFile input not found."
+        );
+        return;
+    }
+
+    fileInput.addEventListener(
+        "change",
+        function () {
+
+            if (
+                !fileInput.files ||
+                fileInput.files.length === 0
+            ) {
+                return;
+            }
+
+            const file =
+                fileInput.files[0];
+
+            if (
+                !file.name
+                    .toLowerCase()
+                    .endsWith(".eml")
+            ) {
+                fileInput.value = "";
+
+                showAnalysisMessage(
+                    "Please select a valid .eml email file.",
+                    "error"
+                );
+
+                return;
+            }
+
+            currentFile = file;
+
+            console.log(
+                "Selected file:",
+                file.name
+            );
+
+            updateSelectedFileUI(file);
+        }
+    );
+}
+
+
+function updateSelectedFileUI(file) {
+    const message =
+        document.getElementById(
+            "analysisMessage"
+        );
+
+    if (!message) {
+        return;
+    }
+
+    message.textContent =
+        "Selected: " + file.name;
+
+    message.classList.remove(
+        "success",
+        "error",
+        "loading",
+        "info"
+    );
+
+    message.classList.add(
+        "file-selected"
+    );
+}
+
+
+/* =========================================================
+   DRAG & DROP
+   ========================================================= */
+
+function setupDragAndDrop() {
+    const uploadCard =
+        document.querySelector(
+            ".upload-card"
+        );
+
+    const fileInput =
+        document.getElementById(
+            "emailFile"
+        );
+
+    if (
+        !uploadCard ||
+        !fileInput
+    ) {
+        return;
+    }
+
+    uploadCard.addEventListener(
+        "dragover",
+        function (event) {
+            event.preventDefault();
+
+            uploadCard.classList.add(
+                "drag-over"
+            );
+        }
+    );
+
+    uploadCard.addEventListener(
+        "dragleave",
+        function () {
+            uploadCard.classList.remove(
+                "drag-over"
+            );
+        }
+    );
+
+    uploadCard.addEventListener(
+        "drop",
+        function (event) {
+            event.preventDefault();
+
+            uploadCard.classList.remove(
+                "drag-over"
+            );
+
+            const files =
+                event.dataTransfer.files;
+
+            if (
+                !files ||
+                files.length === 0
+            ) {
+                return;
+            }
+
+            const file =
+                files[0];
+
+            if (
+                !file.name
+                    .toLowerCase()
+                    .endsWith(".eml")
+            ) {
+                showAnalysisMessage(
+                    "Please select a valid .eml email file.",
+                    "error"
+                );
+
+                return;
+            }
+
+            try {
+                const dataTransfer =
+                    new DataTransfer();
+
+                dataTransfer.items.add(file);
+
+                fileInput.files =
+                    dataTransfer.files;
+
+            } catch (error) {
+                console.warn(
+                    "Could not assign dropped file:",
+                    error
+                );
+            }
+
+            currentFile = file;
+
+            updateSelectedFileUI(file);
+
+            console.log(
+                "Dropped file:",
+                file.name
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   ANALYZE EMAIL
+   ========================================================= */
 
 async function analyzeEmail() {
-    console.log("Analyze Email initiated.");
 
-    const fileInput = document.getElementById("emailFile");
-    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
-        alert("Please select an .eml file first.");
+    if (isAnalyzing) {
         return;
     }
 
-    const file = fileInput.files[0];
-    processFileAnalysis(file);
-}
+    const fileInput =
+        document.getElementById(
+            "emailFile"
+        );
 
-async function processFileAnalysis(file) {
-    if (!file.name.toLowerCase().endsWith(".eml")) {
-        alert("Please upload a valid .eml file.");
+    if (!fileInput) {
+        console.error(
+            "emailFile element was not found."
+        );
+
         return;
     }
 
-    const analyzeBtn = document.getElementById("analyzeButton");
-    if (analyzeBtn) {
-        analyzeBtn.disabled = true;
-        analyzeBtn.textContent = "⏳ Analyzing...";
+    if (
+        !fileInput.files ||
+        fileInput.files.length === 0
+    ) {
+        showAnalysisMessage(
+            "Please select an .eml file first.",
+            "error"
+        );
+
+        return;
     }
 
-    setAnalysisMessage("Analyzing email evidence... please wait.", "#2867ed");
+    const file =
+        fileInput.files[0];
 
-    const formData = new FormData();
-    formData.append("email", file);
+    if (
+        !file.name
+            .toLowerCase()
+            .endsWith(".eml")
+    ) {
+        showAnalysisMessage(
+            "Only .eml files are supported.",
+            "error"
+        );
+
+        return;
+    }
+
+    currentFile = file;
+    isAnalyzing = true;
+
+    setAnalyzeButtonState(true);
+
+    showAnalysisMessage(
+        "Analyzing email. Please wait...",
+        "loading"
+    );
 
     try {
-        // Try relative endpoint first, fallback to localhost:3000
-        const endpoint = window.location.origin.includes("3000")
+
+        const result =
+            await processFileAnalysis(file);
+
+        currentAnalysisData =
+            result;
+
+        console.log(
+            "Final analysis response:",
+            result
+        );
+
+        displayResults(result);
+
+        showAnalysisMessage(
+            "Analysis completed successfully.",
+            "success"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Email analysis failed:",
+            error
+        );
+
+        showAnalysisMessage(
+            error.message ||
+                "Email analysis failed.",
+            "error"
+        );
+
+    } finally {
+
+        isAnalyzing = false;
+
+        setAnalyzeButtonState(
+            false
+        );
+    }
+}
+
+
+/* =========================================================
+   API ANALYSIS
+   ========================================================= */
+
+async function processFileAnalysis(file) {
+
+    const endpoint =
+        window.location.origin.includes(
+            ":3000"
+        )
             ? "/api/analyze"
             : "http://localhost:3000/api/analyze";
 
-        const response = await fetch(endpoint, {
-            method: "POST",
-            body: formData
-        });
+    const formData =
+        new FormData();
 
-        const rawText = await response.text();
-        let data;
+    /*
+       IMPORTANT:
+       Backend expects:
+       upload.single("email")
+    */
+
+    formData.append(
+        "email",
+        file,
+        file.name
+    );
+
+    console.log(
+        "Uploading email using field: email"
+    );
+
+    const response =
+        await fetch(
+            endpoint,
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+    const contentType =
+        response.headers.get(
+            "content-type"
+        ) || "";
+
+    let data;
+
+    if (
+        contentType.includes(
+            "application/json"
+        )
+    ) {
+        data =
+            await response.json();
+
+    } else {
+
+        const text =
+            await response.text();
 
         try {
-            data = JSON.parse(rawText);
-        } catch (jsonError) {
-            throw new Error("Invalid response received from backend server.");
-        }
+            data =
+                JSON.parse(text);
 
-        if (!response.ok) {
-            throw new Error(data.message || data.error || "Email analysis failed.");
-        }
-
-        latestAnalysis = data;
-        console.log("Analysis completed:", data);
-
-        displayResults(data);
-        setAnalysisMessage("Analysis completed successfully: " + file.name, "#168b51");
-
-    } catch (error) {
-        console.error("Analysis error:", error);
-        setAnalysisMessage(error.message || "Could not connect to backend server.", "#d52f2f");
-    } finally {
-        if (analyzeBtn) {
-            analyzeBtn.disabled = false;
-            analyzeBtn.textContent = "🔍 Analyze Email";
+        } catch {
+            data = {
+                message: text
+            };
         }
     }
-}
 
-// =========================================================
-// 3. STATUS MESSAGE
-// =========================================================
+    console.log(
+        "Backend response:",
+        data
+    );
 
-function setAnalysisMessage(text, color) {
-    let msg = document.getElementById("analysisMessage");
-    if (msg) {
-        msg.textContent = text;
-        msg.style.color = color || "#2867ed";
+    if (!response.ok) {
+        throw new Error(
+            data.message ||
+            data.error ||
+            "Server returned HTTP " +
+                response.status
+        );
     }
+
+    return data;
 }
 
-// =========================================================
-// 4. DISPLAY ALL RESULTS
-// =========================================================
+
+/* =========================================================
+   DISPLAY RESULTS
+   ========================================================= */
 
 function displayResults(data) {
-    if (!data) return;
 
-    displayThreatOverview(data);
-    displayEmailInformation(data);
-    displayAuthentication(data.authentication);
-    displayAttachments(data.attachments, data.attachmentsAnalysis);
-    displayIndicators(data.findings || data.indicators || []);
-    displayURLs(data.urls || []);
-    displayIPs(data.allIPs || getCombinedIPs(data));
-    displayHeaderPath(data.received || []);
-    displayHeaderIPs(data.headerIPs || []);
-    displayURLIntelligence(data.urlAnalysis || []);
-    displayIPInfrastructure(data.ipAnalysis || []);
-    displayEmailContent(data);
-    displayThreatGraph(data);
+    if (!data) {
+        console.warn(
+            "No analysis data received."
+        );
+
+        return;
+    }
+
+    console.log(
+        "Displaying analysis:",
+        data
+    );
+
+    const result =
+        data.data ||
+        data.result ||
+        data.analysis ||
+        data;
+
+    currentAnalysisData =
+        data;
+
+    updateThreatOverview(result);
+    updateEmailInformation(result);
+    updateAuthentication(result);
+    updateForensics(result);
+    updateEmailEvidence(result);
+    updateIntelligence(result);
+    updateGeoLocation(result);
+    updateThreatGraph(result);
+
+    scrollToResults();
 }
 
-// =========================================================
-// 5. THREAT OVERVIEW
-// =========================================================
 
-function displayThreatOverview(data) {
-    const score = Number(data.threatScore ?? data.score ?? 0);
-    const cappedScore = Math.max(0, Math.min(100, score));
+/* =========================================================
+   THREAT OVERVIEW
+   ========================================================= */
 
-    setText("threatScore", cappedScore);
+function updateThreatOverview(data) {
 
-    // Score bar fill and color
-    const scoreBar = document.getElementById("scoreBar");
-    if (scoreBar) {
-        scoreBar.style.width = cappedScore + "%";
-        if (cappedScore >= 70) {
-            scoreBar.style.backgroundColor = "#d52f2f";
-        } else if (cappedScore >= 40) {
-            scoreBar.style.backgroundColor = "#e69500";
-        } else {
-            scoreBar.style.backgroundColor = "#168b51";
+    const threatScore =
+        getValue(
+            data,
+            [
+                "threatScore",
+                "threat_score",
+                "score",
+                "riskScore",
+                "risk_score"
+            ],
+            null
+        );
+
+    const verdict =
+        getValue(
+            data,
+            [
+                "verdict",
+                "classification",
+                "threatVerdict"
+            ],
+            null
+        );
+
+    const confidence =
+        getValue(
+            data,
+            [
+                "confidence",
+                "confidenceScore",
+                "confidence_score"
+            ],
+            null
+        );
+
+    const urlCount =
+        getValue(
+            data,
+            [
+                "urlCount",
+                "url_count",
+                "urlsDetected"
+            ],
+            null
+        );
+
+    const ipCount =
+        getValue(
+            data,
+            [
+                "ipCount",
+                "ip_count",
+                "ipsDetected"
+            ],
+            null
+        );
+
+    setText(
+        "threatScore",
+        threatScore !== null
+            ? formatScore(
+                threatScore
+            ) + " / 100"
+            : "—"
+    );
+
+    setText(
+        "verdict",
+        verdict || "—"
+    );
+
+    setText(
+        "confidence",
+        confidence !== null
+            ? formatConfidence(
+                confidence
+            ) + " %"
+            : "—"
+    );
+
+    setText(
+        "urlCount",
+        urlCount !== null
+            ? String(urlCount)
+            : "—"
+    );
+
+    setText(
+        "ipCount",
+        ipCount !== null
+            ? String(ipCount)
+            : "—"
+    );
+
+    const scoreBar =
+        document.getElementById(
+            "scoreBar"
+        );
+
+    if (
+        scoreBar &&
+        threatScore !== null
+    ) {
+
+        let numericScore =
+            parseFloat(
+                threatScore
+            );
+
+        if (
+            !Number.isNaN(
+                numericScore
+            )
+        ) {
+
+            numericScore =
+                Math.max(
+                    0,
+                    Math.min(
+                        100,
+                        numericScore
+                    )
+                );
+
+            scoreBar.style.width =
+                numericScore + "%";
         }
     }
 
-    // Verdict and badge styling
-    const verdict = String(data.verdict || "LOW RISK").toUpperCase();
-    const verdictEl = document.getElementById("verdict");
-    if (verdictEl) {
-        verdictEl.textContent = verdict;
-        verdictEl.className = "stat-value verdict-value " + getVerdictClass(verdict);
-    }
+    const verdictDescription =
+        getValue(
+            data,
+            [
+                "verdictDescription",
+                "verdict_description",
+                "description",
+                "summary"
+            ],
+            null
+        );
 
-    // Verdict description
-    const descEl = document.getElementById("verdictDescription");
-    if (descEl) {
-        if (verdict.includes("HIGH")) {
-            descEl.textContent = "High-risk threat detected. Immediate containment advised.";
-            descEl.style.color = "#d52f2f";
-        } else if (verdict.includes("MEDIUM")) {
-            descEl.textContent = "Suspicious characteristics detected. Further verification required.";
-            descEl.style.color = "#bd7700";
-        } else {
-            descEl.textContent = "No significant threats identified. Normal email traffic.";
-            descEl.style.color = "#168b51";
+    setText(
+        "verdictDescription",
+        verdictDescription ||
+            "Analysis completed."
+    );
+
+    const verdictElement =
+        document.getElementById(
+            "verdict"
+        );
+
+    if (verdictElement) {
+
+        verdictElement.classList.remove(
+            "high",
+            "medium",
+            "low",
+            "critical",
+            "safe"
+        );
+
+        const normalized =
+            String(
+                verdict || ""
+            ).toLowerCase();
+
+        if (
+            normalized.includes(
+                "critical"
+            )
+        ) {
+
+            verdictElement.classList.add(
+                "critical"
+            );
+
+        } else if (
+            normalized.includes(
+                "high"
+            )
+        ) {
+
+            verdictElement.classList.add(
+                "high"
+            );
+
+        } else if (
+            normalized.includes(
+                "medium"
+            ) ||
+            normalized.includes(
+                "suspicious"
+            )
+        ) {
+
+            verdictElement.classList.add(
+                "medium"
+            );
+
+        } else if (
+            normalized.includes(
+                "low"
+            ) ||
+            normalized.includes(
+                "safe"
+            ) ||
+            normalized.includes(
+                "clean"
+            )
+        ) {
+
+            verdictElement.classList.add(
+                "low"
+            );
         }
     }
-
-    // Confidence
-    const confidence = data.confidence ?? 0;
-    setText("confidence", confidence);
-
-    // Counts
-    const urls = Array.isArray(data.urls) ? data.urls : [];
-    setText("urlCount", urls.length);
-
-    const ips = getCombinedIPs(data);
-    setText("ipCount", ips.length);
 }
 
-function getCombinedIPs(data) {
-    const bodyIPs = Array.isArray(data.ips) ? data.ips : [];
-    const headerIPs = Array.isArray(data.headerIPs) ? data.headerIPs : [];
-    return [...new Set([...bodyIPs, ...headerIPs])];
+
+/* =========================================================
+   EMAIL INFORMATION
+   ========================================================= */
+
+function updateEmailInformation(data) {
+
+    const email =
+        data.email ||
+        data.emailInfo ||
+        data.email_information ||
+        data;
+
+    setText(
+        "sender",
+        getValue(
+            email,
+            [
+                "sender",
+                "from",
+                "senderEmail",
+                "fromEmail"
+            ],
+            "—"
+        )
+    );
+
+    setText(
+        "recipient",
+        getValue(
+            email,
+            [
+                "recipient",
+                "to",
+                "recipientEmail",
+                "toEmail"
+            ],
+            "—"
+        )
+    );
+
+    setText(
+        "subject",
+        getValue(
+            email,
+            [
+                "subject"
+            ],
+            "—"
+        )
+    );
+
+    setText(
+        "emailDate",
+        getValue(
+            email,
+            [
+                "emailDate",
+                "date",
+                "timestamp"
+            ],
+            "—"
+        )
+    );
+
+    setText(
+        "messageId",
+        getValue(
+            email,
+            [
+                "messageId",
+                "message_id"
+            ],
+            "—"
+        )
+    );
+
+    setText(
+        "replyTo",
+        getValue(
+            email,
+            [
+                "replyTo",
+                "reply_to"
+            ],
+            "—"
+        )
+    );
 }
 
-// =========================================================
-// 6. EMAIL INFORMATION
-// =========================================================
 
-function displayEmailInformation(data) {
-    const email = data.email || data;
+/* =========================================================
+   AUTHENTICATION
+   ========================================================= */
 
-    setText("sender", email.sender || "---");
-    setText("recipient", email.recipient || "---");
-    setText("subject", email.subject || "---");
-    setText("emailDate", formatDate(email.date));
-    setText("messageId", email.messageId || "---");
-    setText("replyTo", email.replyTo || "---");
+function updateAuthentication(data) {
+
+    const auth =
+        data.authentication ||
+        data.auth ||
+        data.emailAuthentication ||
+        {};
+
+    const spf =
+        getValue(
+            auth,
+            [
+                "spf",
+                "spfStatus",
+                "spf_status"
+            ],
+            getValue(
+                data,
+                [
+                    "spf",
+                    "spfStatus",
+                    "spf_status"
+                ],
+                "NOT CONFIGURED"
+            )
+        );
+
+    const dkim =
+        getValue(
+            auth,
+            [
+                "dkim",
+                "dkimStatus",
+                "dkim_status"
+            ],
+            getValue(
+                data,
+                [
+                    "dkim",
+                    "dkimStatus",
+                    "dkim_status"
+                ],
+                "NOT CONFIGURED"
+            )
+        );
+
+    const dmarc =
+        getValue(
+            auth,
+            [
+                "dmarc",
+                "dmarcStatus",
+                "dmarc_status"
+            ],
+            getValue(
+                data,
+                [
+                    "dmarc",
+                    "dmarcStatus",
+                    "dmarc_status"
+                ],
+                "NOT CONFIGURED"
+            )
+        );
+
+    updateAuthStatus(
+        "spfStatus",
+        spf
+    );
+
+    updateAuthStatus(
+        "dkimStatus",
+        dkim
+    );
+
+    updateAuthStatus(
+        "dmarcStatus",
+        dmarc
+    );
+
+    const details =
+        getValue(
+            auth,
+            [
+                "details",
+                "description",
+                "message"
+            ],
+            getValue(
+                data,
+                [
+                    "authDetails",
+                    "authenticationDetails"
+                ],
+                ""
+            )
+        );
+
+    setText(
+        "authDetails",
+        details ||
+            "No authentication details available."
+    );
 }
 
-// =========================================================
-// 7. EMAIL AUTHENTICATION (SPF, DKIM, DMARC)
-// =========================================================
 
-function displayAuthentication(auth) {
-    const authData = auth || { spf: "NOT CONFIGURED", dkim: "NOT CONFIGURED", dmarc: "NOT CONFIGURED", details: [] };
+function updateAuthStatus(
+    id,
+    value
+) {
 
-    updateAuthBadge("spfStatus", authData.spf);
-    updateAuthBadge("dkimStatus", authData.dkim);
-    updateAuthBadge("dmarcStatus", authData.dmarc);
+    const element =
+        document.getElementById(
+            id
+        );
 
-    const detailsContainer = document.getElementById("authDetails");
-    if (detailsContainer) {
-        detailsContainer.innerHTML = "";
-        if (Array.isArray(authData.details) && authData.details.length > 0) {
-            authData.details.forEach(d => {
-                const item = document.createElement("div");
-                item.className = "auth-detail-item";
-                item.textContent = d;
-                detailsContainer.appendChild(item);
-            });
-        }
+    if (!element) {
+        return;
     }
-}
 
-function updateAuthBadge(elementId, status) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
+    element.textContent =
+        formatStatus(
+            value
+        );
 
-    const val = String(status || "NONE").toUpperCase();
-    el.textContent = val;
+    element.classList.remove(
+        "status-success",
+        "status-warning",
+        "status-danger",
+        "success",
+        "warning",
+        "danger"
+    );
 
-    if (val.includes("PASS")) {
-        el.className = "auth-badge pass";
-    } else if (val.includes("FAIL")) {
-        el.className = "auth-badge fail";
-    } else if (val.includes("SOFTFAIL")) {
-        el.className = "auth-badge softfail";
+    const normalized =
+        String(
+            value
+        ).toLowerCase();
+
+    if (
+        normalized.includes("pass") ||
+        normalized.includes("valid") ||
+        normalized.includes("success")
+    ) {
+
+        element.classList.add(
+            "status-success"
+        );
+
+    } else if (
+        normalized.includes("fail") ||
+        normalized.includes("invalid") ||
+        normalized.includes("danger")
+    ) {
+
+        element.classList.add(
+            "status-danger"
+        );
+
     } else {
-        el.className = "auth-badge neutral";
+
+        element.classList.add(
+            "status-warning"
+        );
     }
 }
 
-// =========================================================
-// 8. ATTACHMENTS FORENSICS
-// =========================================================
 
-function displayAttachments(attachments, analysis) {
-    const container = document.getElementById("attachmentsList");
-    if (!container) return;
+/* =========================================================
+   FORENSICS
+   ========================================================= */
 
-    container.innerHTML = "";
+function updateForensics(data) {
 
-    const items = Array.isArray(analysis) && analysis.length > 0
-        ? analysis
-        : (Array.isArray(attachments) ? attachments : []);
+    const attachments =
+        getValue(
+            data,
+            [
+                "attachments",
+                "attachmentList"
+            ],
+            []
+        );
 
-    if (items.length === 0) {
-        container.innerHTML = '<div class="empty-state">No attachments detected in this email.</div>';
+    const indicators =
+        getValue(
+            data,
+            [
+                "indicators",
+                "suspiciousIndicators",
+                "findings"
+            ],
+            []
+        );
+
+    const urls =
+        getValue(
+            data,
+            [
+                "extractedUrls",
+                "urls",
+                "extracted_urls"
+            ],
+            []
+        );
+
+    const ips =
+        getValue(
+            data,
+            [
+                "extractedIPs",
+                "ips",
+                "ipAddresses",
+                "extracted_ips"
+            ],
+            []
+        );
+
+    const relayPath =
+        getValue(
+            data,
+            [
+                "relayPath",
+                "relay_path",
+                "receivedPath"
+            ],
+            []
+        );
+
+    const headerIPs =
+        getValue(
+            data,
+            [
+                "headerIPs",
+                "header_ips"
+            ],
+            []
+        );
+
+    renderList(
+        "attachmentsList",
+        attachments,
+        "No attachments detected."
+    );
+
+    renderList(
+        "indicators",
+        indicators,
+        "No suspicious indicators detected."
+    );
+
+    renderList(
+        "extractedUrls",
+        urls,
+        "No URLs detected."
+    );
+
+    renderList(
+        "extractedIPs",
+        ips,
+        "No IP addresses detected."
+    );
+
+    renderList(
+        "relayPath",
+        relayPath,
+        "No relay information available."
+    );
+
+    renderList(
+        "headerIPs",
+        headerIPs,
+        "No header IP addresses detected."
+    );
+}
+
+
+/* =========================================================
+   EMAIL EVIDENCE
+   ========================================================= */
+
+function updateEmailEvidence(data) {
+
+    const plainText =
+        getValue(
+            data,
+            [
+                "body",
+                "plainText",
+                "plainBody",
+                "textBody",
+                "emailBodyText"
+            ],
+            ""
+        );
+
+    const htmlBody =
+        getValue(
+            data,
+            [
+                "htmlBody",
+                "html",
+                "emailHtml"
+            ],
+            ""
+        );
+
+    const rawHeaders =
+        getValue(
+            data,
+            [
+                "rawHeaders",
+                "headers",
+                "raw_headers"
+            ],
+            ""
+        );
+
+    setText(
+        "emailBodyText",
+        plainText ||
+            "No plain-text body available."
+    );
+
+    setText(
+        "rawHeadersText",
+        rawHeaders ||
+            "No raw headers available."
+    );
+
+    renderHtmlEmailPreview(
+        htmlBody
+    );
+}
+
+
+function renderHtmlEmailPreview(
+    htmlBody
+) {
+
+    const container =
+        document.getElementById(
+            "emailHtmlPreview"
+        );
+
+    if (!container) {
         return;
     }
 
-    const wrapper = document.createElement("div");
-    wrapper.className = "attachments-container";
-
-    items.forEach(att => {
-        const card = document.createElement("div");
-        const isDangerous = att.isDangerous || String(att.risk || "").includes("HIGH");
-        card.className = "attachment-card" + (isDangerous ? " dangerous" : "");
-
-        const info = document.createElement("div");
-        info.className = "attachment-info";
-
-        const icon = document.createElement("span");
-        icon.className = "attachment-icon";
-        icon.textContent = isDangerous ? "⚠️" : "📎";
-
-        const details = document.createElement("div");
-        const name = document.createElement("div");
-        name.className = "attachment-name";
-        name.textContent = att.filename || "unnamed";
-
-        const meta = document.createElement("div");
-        meta.className = "attachment-meta";
-        const sizeStr = att.size ? formatBytes(att.size) : "Unknown size";
-        meta.textContent = "Type: " + (att.contentType || "Unknown") + " | Size: " + sizeStr;
-
-        details.appendChild(name);
-        details.appendChild(meta);
-
-        info.appendChild(icon);
-        info.appendChild(details);
-
-        const badge = document.createElement("span");
-        badge.className = "attachment-badge " + (isDangerous ? "dangerous" : "safe");
-        badge.textContent = isDangerous ? "HIGH RISK FILE" : "NORMAL ATTACHMENT";
-
-        card.appendChild(info);
-        card.appendChild(badge);
-
-        wrapper.appendChild(card);
-    });
-
-    container.appendChild(wrapper);
-}
-
-function formatBytes(bytes) {
-    if (!bytes || bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-}
-
-// =========================================================
-// 9. SUSPICIOUS INDICATORS
-// =========================================================
-
-function displayIndicators(findings) {
-    const container = document.getElementById("indicators");
-    if (!container) return;
-
     container.innerHTML = "";
 
-    if (!Array.isArray(findings) || findings.length === 0) {
-        container.innerHTML = '<p class="empty-state">No suspicious indicators detected.</p>';
+    if (
+        !htmlBody ||
+        String(
+            htmlBody
+        ).trim() === ""
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.className =
+            "empty-message";
+
+        empty.textContent =
+            "No HTML body available.";
+
+        container.appendChild(
+            empty
+        );
+
         return;
     }
 
-    const list = document.createElement("div");
-    list.className = "indicator-list";
+    const iframe =
+        document.createElement(
+            "iframe"
+        );
 
-    findings.forEach((finding, index) => {
-        const item = document.createElement("div");
-        item.className = "indicator";
+    iframe.className =
+        "email-preview-iframe";
 
-        const left = document.createElement("div");
-        left.className = "indicator-left";
+    iframe.setAttribute(
+        "sandbox",
+        ""
+    );
 
-        let code = finding.type || finding.code || ("INDICATOR_" + (index + 1));
-        let desc = finding.description || finding.message || "Suspicious indicator identified.";
-        let points = Number(finding.score ?? finding.points ?? 0);
-        let severity = finding.severity || (points >= 20 ? "HIGH" : points >= 10 ? "MEDIUM" : "LOW");
-        let icon = getSeverityIcon(severity);
+    iframe.setAttribute(
+        "title",
+        "Email HTML Preview"
+    );
 
-        const codeSpan = document.createElement("span");
-        codeSpan.className = "indicator-code";
-        codeSpan.textContent = icon + " " + code;
+    iframe.style.width =
+        "100%";
 
-        const nameSpan = document.createElement("span");
-        nameSpan.className = "indicator-name";
-        nameSpan.textContent = desc;
+    iframe.style.height =
+        "100%";
 
-        left.appendChild(codeSpan);
-        left.appendChild(nameSpan);
+    iframe.style.minHeight =
+        "360px";
 
-        const scoreSpan = document.createElement("span");
-        scoreSpan.className = "indicator-score";
-        scoreSpan.textContent = points > 0 ? ("+" + points + " pts") : "INFO";
+    iframe.style.border =
+        "0";
 
-        item.appendChild(left);
-        item.appendChild(scoreSpan);
-        list.appendChild(item);
-    });
+    iframe.style.background =
+        "#ffffff";
 
-    container.appendChild(list);
+    iframe.srcdoc =
+        String(htmlBody);
+
+    container.appendChild(
+        iframe
+    );
 }
 
-function getSeverityIcon(severity) {
-    const s = String(severity || "").toUpperCase();
-    if (s.includes("HIGH") || s.includes("CRITICAL")) return "🚨";
-    if (s.includes("MEDIUM") || s.includes("WARNING")) return "⚠️";
-    return "🔍";
+
+/* =========================================================
+   EVIDENCE TABS
+   ========================================================= */
+
+function setupEvidenceTabs() {
+
+    const plainButton =
+        document.getElementById(
+            "tabBtnPlain"
+        );
+
+    const htmlButton =
+        document.getElementById(
+            "tabBtnHtml"
+        );
+
+    const headersButton =
+        document.getElementById(
+            "tabBtnHeaders"
+        );
+
+    if (plainButton) {
+
+        plainButton.addEventListener(
+            "click",
+            function () {
+                switchContentTab(
+                    "plain"
+                );
+            }
+        );
+    }
+
+    if (htmlButton) {
+
+        htmlButton.addEventListener(
+            "click",
+            function () {
+                switchContentTab(
+                    "html"
+                );
+            }
+        );
+    }
+
+    if (headersButton) {
+
+        headersButton.addEventListener(
+            "click",
+            function () {
+                switchContentTab(
+                    "headers"
+                );
+            }
+        );
+    }
 }
 
-// =========================================================
-// 10. EXTRACTED URLS & IPS (FIXED ID QUERIES)
-// =========================================================
 
-function displayURLs(urls) {
-    // Check both lowercase and uppercase variations to prevent ID mismatch
-    const container = document.getElementById("extractedUrls") || document.getElementById("extractedURLs");
-    if (!container) return;
+function switchContentTab(
+    tabName
+) {
 
-    container.innerHTML = "";
+    const tabs = {
+        plain: "tabPlain",
+        html: "tabHtml",
+        headers: "tabHeaders"
+    };
 
-    if (!Array.isArray(urls) || urls.length === 0) {
-        container.innerHTML = '<div class="empty-state">No URLs detected.</div>';
+    const buttons = {
+        plain: "tabBtnPlain",
+        html: "tabBtnHtml",
+        headers: "tabBtnHeaders"
+    };
+
+    Object.keys(
+        tabs
+    ).forEach(
+        function (key) {
+
+            const tab =
+                document.getElementById(
+                    tabs[key]
+                );
+
+            const button =
+                document.getElementById(
+                    buttons[key]
+                );
+
+            if (tab) {
+
+                tab.classList.remove(
+                    "active"
+                );
+
+                tab.style.display =
+                    "none";
+            }
+
+            if (button) {
+
+                button.classList.remove(
+                    "active"
+                );
+            }
+        }
+    );
+
+    if (!tabs[tabName]) {
+        tabName = "plain";
+    }
+
+    const selectedTab =
+        document.getElementById(
+            tabs[tabName]
+        );
+
+    const selectedButton =
+        document.getElementById(
+            buttons[tabName]
+        );
+
+    if (selectedTab) {
+
+        selectedTab.classList.add(
+            "active"
+        );
+
+        selectedTab.style.display =
+            "block";
+    }
+
+    if (selectedButton) {
+
+        selectedButton.classList.add(
+            "active"
+        );
+    }
+}
+
+
+/* =========================================================
+   URL + IP INTELLIGENCE
+   ========================================================= */
+
+function updateIntelligence(data) {
+
+    const urlAnalysis =
+        getValue(
+            data,
+            [
+                "urlAnalysis",
+                "urlIntelligence",
+                "url_analysis"
+            ],
+            []
+        );
+
+    const ipAnalysis =
+        getValue(
+            data,
+            [
+                "ipAnalysis",
+                "ipIntelligence",
+                "ip_analysis"
+            ],
+            []
+        );
+
+    /*
+       IMPORTANT FIX:
+       This previously called renderAnalysis(),
+       but the actual renderer in this file is
+       renderIntelligence().
+    */
+
+    renderIntelligence(
+        "urlAnalysis",
+        urlAnalysis,
+        "No URL intelligence available.",
+        "url"
+    );
+
+    renderIntelligence(
+        "ipAnalysis",
+        ipAnalysis,
+        "No IP intelligence available.",
+        "ip"
+    );
+}
+
+
+/* =========================================================
+   INTELLIGENCE RENDERER
+   ========================================================= */
+
+function renderIntelligence(
+    elementId,
+    data,
+    emptyMessage,
+    type
+) {
+
+    const container =
+        document.getElementById(
+            elementId
+        );
+
+    if (!container) {
         return;
     }
 
-    const list = document.createElement("div");
-    list.className = "item-list";
-
-    urls.forEach(url => {
-        const item = document.createElement("div");
-        item.className = "list-item";
-        item.innerHTML = "🔗 <strong>" + escapeHtml(url) + "</strong>";
-        list.appendChild(item);
-    });
-
-    container.appendChild(list);
-}
-
-function displayIPs(ips) {
-    const container = document.getElementById("extractedIPs");
-    if (!container) return;
-
     container.innerHTML = "";
 
-    if (!Array.isArray(ips) || ips.length === 0) {
-        container.innerHTML = '<div class="empty-state">No IP addresses detected.</div>';
+    const panel =
+        document.createElement(
+            "div"
+        );
+
+    panel.className =
+        "intelligence-panel";
+
+    const normalized =
+        normalizeAnalysisData(
+            data
+        );
+
+    if (
+        normalized.length === 0
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.className =
+            "empty-state";
+
+        empty.textContent =
+            emptyMessage;
+
+        panel.appendChild(
+            empty
+        );
+
+        container.appendChild(
+            panel
+        );
+
         return;
     }
 
-    const list = document.createElement("div");
-    list.className = "item-list";
+    normalized.forEach(
+        function (item, index) {
 
-    ips.forEach(ip => {
-        const item = document.createElement("div");
-        item.className = "list-item";
-        item.innerHTML = "🌐 <strong>" + escapeHtml(ip) + "</strong>";
-        list.appendChild(item);
-    });
+            const card =
+                createIntelligenceCard(
+                    item,
+                    type,
+                    index
+                );
 
-    container.appendChild(list);
+            panel.appendChild(
+                card
+            );
+        }
+    );
+
+    container.appendChild(
+        panel
+    );
 }
 
-function displayHeaderIPs(ips) {
-    const container = document.getElementById("headerIPs");
-    if (!container) return;
 
-    container.innerHTML = "";
+/* =========================================================
+   NORMALIZE INTELLIGENCE DATA
+   ========================================================= */
 
-    if (!Array.isArray(ips) || ips.length === 0) {
-        container.innerHTML = '<div class="empty-state">No header IPs detected.</div>';
-        return;
+function normalizeAnalysisData(
+    data
+) {
+
+    if (
+        data === null ||
+        data === undefined ||
+        data === ""
+    ) {
+        return [];
     }
 
-    const list = document.createElement("div");
-    list.className = "item-list";
-
-    ips.forEach(ip => {
-        const item = document.createElement("div");
-        item.className = "list-item";
-        item.innerHTML = "💻 <strong>" + escapeHtml(ip) + "</strong> (Received header origin)";
-        list.appendChild(item);
-    });
-
-    container.appendChild(list);
-}
-
-function displayHeaderPath(received) {
-    // Check both relayPath and headerPath to prevent ID mismatch
-    const container = document.getElementById("relayPath") || document.getElementById("headerPath");
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (!Array.isArray(received) || received.length === 0) {
-        container.innerHTML = '<div class="empty-state">No header relay information available.</div>';
-        return;
+    if (Array.isArray(data)) {
+        return data;
     }
 
-    const list = document.createElement("div");
-    list.className = "relay-list";
+    if (
+        typeof data === "object"
+    ) {
 
-    const path = [...received].reverse();
+        const possibleArrays = [
+            "results",
+            "data",
+            "urls",
+            "ips",
+            "items",
+            "records",
+            "resultsData"
+        ];
 
-    path.forEach((hop, idx) => {
-        const item = document.createElement("div");
-        item.className = "relay-item";
-        item.innerHTML = "<strong>Hop " + (idx + 1) + ":</strong> " + escapeHtml(String(hop));
-        list.appendChild(item);
-    });
+        for (
+            const key of possibleArrays
+        ) {
 
-    container.appendChild(list);
-}
-
-// =========================================================
-// 11. URL & DOMAIN INTELLIGENCE
-// =========================================================
-
-function displayURLIntelligence(analyses) {
-    const container = document.getElementById("urlAnalysis");
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (!Array.isArray(analyses) || analyses.length === 0) {
-        container.innerHTML = '<div class="panel"><div class="empty-state">No URL intelligence available.</div></div>';
-        return;
-    }
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "url-analysis-container";
-
-    analyses.forEach(analysis => {
-        const card = document.createElement("div");
-        card.className = "url-analysis-card";
-
-        // Header with Domain and Verdict
-        const header = document.createElement("div");
-        header.className = "url-analysis-header";
-
-        const domainDiv = document.createElement("div");
-        const domainTitle = document.createElement("div");
-        domainTitle.className = "url-domain";
-        domainTitle.textContent = analysis.domain || "Unknown Domain";
-
-        const urlValue = document.createElement("div");
-        urlValue.className = "url-value";
-        urlValue.textContent = analysis.url;
-
-        domainDiv.appendChild(domainTitle);
-        domainDiv.appendChild(urlValue);
-
-        const verdict = document.createElement("span");
-        const verdictVal = analysis.verdict || "UNKNOWN";
-        verdict.className = "url-verdict " + getVerdictClass(verdictVal);
-        verdict.textContent = verdictVal;
-
-        header.appendChild(domainDiv);
-        header.appendChild(verdict);
-        card.appendChild(header);
-
-        // Details Grid (3 columns)
-        const details = document.createElement("div");
-        details.className = "url-details";
-
-        details.appendChild(createUrlDetail("Protocol", analysis.protocol || "---"));
-        details.appendChild(createUrlDetail("TLD Extension", analysis.tld ? ("." + analysis.tld) : "---"));
-        details.appendChild(createUrlDetail("Risk Score", (analysis.riskScore ?? 0) + " / 100"));
-
-        if (analysis.brand) {
-            details.appendChild(createUrlDetail("Impersonated Brand", analysis.brand));
+            if (
+                Array.isArray(
+                    data[key]
+                )
+            ) {
+                return data[key];
+            }
         }
 
-        card.appendChild(details);
-
-        // Findings tags
-        if (Array.isArray(analysis.findings) && analysis.findings.length > 0) {
-            const findingList = document.createElement("div");
-            findingList.className = "finding-list";
-
-            analysis.findings.forEach(f => {
-                const tag = document.createElement("span");
-                tag.className = "finding-tag";
-                tag.textContent = typeof f === "string" ? f : (f.description || f.type || "Suspicious attribute");
-                findingList.appendChild(tag);
-            });
-
-            card.appendChild(findingList);
-        }
-
-        wrapper.appendChild(card);
-    });
-
-    container.appendChild(wrapper);
-}
-
-function createUrlDetail(label, value) {
-    const div = document.createElement("div");
-    div.className = "url-detail";
-    div.innerHTML = "<strong>" + escapeHtml(label) + "</strong><span>" + escapeHtml(String(value)) + "</span>";
-    return div;
-}
-
-// =========================================================
-// 12. IP INFRASTRUCTURE & GEOLOCATION
-// =========================================================
-
-function displayIPInfrastructure(analyses) {
-    const container = document.getElementById("ipAnalysis");
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (!Array.isArray(analyses) || analyses.length === 0) {
-        container.innerHTML = '<div class="panel"><div class="empty-state">No IP infrastructure geolocation available.</div></div>';
-        return;
+        return [data];
     }
 
-    const wrapper = document.createElement("div");
-    wrapper.className = "ip-analysis-container";
-
-    analyses.forEach(analysis => {
-        const card = document.createElement("div");
-        card.className = "ip-analysis-card";
-
-        // Header
-        const header = document.createElement("div");
-        header.className = "ip-analysis-header";
-
-        const ipTitle = document.createElement("div");
-        ipTitle.className = "ip-address";
-        ipTitle.textContent = "🌐 " + (analysis.ip || "Unknown IP");
-
-        const status = document.createElement("span");
-        status.className = "ip-status " + getIPStatusClass(analysis.status);
-        status.textContent = analysis.status || "UNKNOWN";
-
-        header.appendChild(ipTitle);
-        header.appendChild(status);
-        card.appendChild(header);
-
-        // Status message if any
-        if (analysis.message) {
-            const msg = document.createElement("p");
-            msg.className = "ip-message";
-            msg.textContent = analysis.message;
-            card.appendChild(msg);
-        }
-
-        // Details grid if successful
-        if (String(analysis.status || "").toUpperCase() === "SUCCESS") {
-            const grid = document.createElement("div");
-            grid.className = "ip-detail-grid";
-
-            grid.appendChild(createIPRow("Country", analysis.country));
-            grid.appendChild(createIPRow("Region / City", (analysis.region || "") + ", " + (analysis.city || "")));
-            grid.appendChild(createIPRow("ISP", analysis.isp));
-            grid.appendChild(createIPRow("Organization", analysis.organization));
-            grid.appendChild(createIPRow("Autonomous System", analysis.autonomousSystem || analysis.as));
-            grid.appendChild(createIPRow("Coordinates", (analysis.latitude ?? "?") + ", " + (analysis.longitude ?? "?")));
-
-            card.appendChild(grid);
-        }
-
-        wrapper.appendChild(card);
-    });
-
-    container.appendChild(wrapper);
+    return [data];
 }
 
-function createIPRow(label, value) {
-    const div = document.createElement("div");
-    div.className = "ip-detail-row";
-    div.innerHTML = "<strong>" + escapeHtml(label) + "</strong><span>" + escapeHtml(String(value || "Unknown")) + "</span>";
-    return div;
-}
 
-// =========================================================
-// 13. EMAIL CONTENT & EVIDENCE VIEWER
-// =========================================================
+/* =========================================================
+   INTELLIGENCE CARD
+   ========================================================= */
 
-function displayEmailContent(data) {
-    const bodyText = document.getElementById("emailBodyText");
-    if (bodyText) {
-        bodyText.textContent = data.body || "(No plaintext body found in email)";
+function createIntelligenceCard(
+    item,
+    type,
+    index
+) {
+
+    const card =
+        document.createElement(
+            "div"
+        );
+
+    card.className =
+        "analysis-item intelligence-card";
+
+    if (
+        item === null ||
+        typeof item !== "object"
+    ) {
+
+        card.textContent =
+            String(item);
+
+        return card;
     }
 
-    const htmlFrame = document.getElementById("emailHtmlPreview");
-    if (htmlFrame) {
-        if (data.htmlBody) {
-            htmlFrame.innerHTML = data.htmlBody;
-        } else {
-            htmlFrame.textContent = "(No HTML content found in email)";
-        }
+    const title =
+        document.createElement(
+            "div"
+        );
+
+    title.className =
+        "intelligence-title";
+
+    const primaryValue =
+        getPrimaryIntelligenceValue(
+            item,
+            type
+        );
+
+    title.textContent =
+        primaryValue ||
+        (
+            type === "url"
+                ? "URL Result " + (index + 1)
+                : "IP Result " + (index + 1)
+        );
+
+    card.appendChild(
+        title
+    );
+
+    const fields =
+        getDisplayFields(
+            item,
+            type
+        );
+
+    if (
+        fields.length === 0
+    ) {
+
+        const raw =
+            document.createElement(
+                "pre"
+            );
+
+        raw.className =
+            "intelligence-raw";
+
+        raw.textContent =
+            JSON.stringify(
+                item,
+                null,
+                2
+            );
+
+        card.appendChild(
+            raw
+        );
+
+        return card;
     }
 
-    const headersText = document.getElementById("rawHeadersText");
-    if (headersText) {
-        if (data.headers && typeof data.headers === "object") {
-            const headerLines = Object.entries(data.headers)
-                .map(([k, v]) => k.toUpperCase() + ": " + v)
-                .join("\n");
-            headersText.textContent = headerLines || "(No headers available)";
-        } else {
-            headersText.textContent = "(No headers available)";
+    fields.forEach(
+        function (field) {
+
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+            row.className =
+                "intelligence-row";
+
+            const label =
+                document.createElement(
+                    "span"
+                );
+
+            label.className =
+                "intelligence-label";
+
+            label.textContent =
+                formatLabel(
+                    field.key
+                );
+
+            const value =
+                document.createElement(
+                    "span"
+                );
+
+            value.className =
+                "intelligence-value";
+
+            value.textContent =
+                formatIntelligenceValue(
+                    field.value
+                );
+
+            row.appendChild(
+                label
+            );
+
+            row.appendChild(
+                value
+            );
+
+            card.appendChild(
+                row
+            );
         }
-    }
+    );
+
+    return card;
 }
 
-function switchContentTab(tabName) {
-    const tabs = ["plain", "html", "headers"];
-    tabs.forEach(t => {
-        const btn = document.getElementById("tabBtn" + capitalize(t));
-        const pane = document.getElementById("tab" + capitalize(t));
-        if (btn) btn.classList.remove("active");
-        if (pane) pane.classList.remove("active");
-    });
 
-    const activeBtn = document.getElementById("tabBtn" + capitalize(tabName));
-    const activePane = document.getElementById("tab" + capitalize(tabName));
-    if (activeBtn) activeBtn.classList.add("active");
-    if (activePane) activePane.classList.add("active");
+/* =========================================================
+   PRIMARY INTELLIGENCE VALUE
+   ========================================================= */
+
+function getPrimaryIntelligenceValue(
+    item,
+    type
+) {
+
+    const keys =
+        type === "url"
+            ? [
+                "url",
+                "URL",
+                "uri",
+                "link",
+                "domain"
+            ]
+            : [
+                "ip",
+                "IP",
+                "ipAddress",
+                "ip_address",
+                "address"
+            ];
+
+    return getValue(
+        item,
+        keys,
+        null
+    );
 }
 
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
 
-// =========================================================
-// 14. THREAT RELATIONSHIP GRAPH (CONNECTED WITH SVG LINES)
-// =========================================================
+/* =========================================================
+   DISPLAY INTELLIGENCE FIELDS
+   ========================================================= */
 
-function displayThreatGraph(data) {
-    const container = document.getElementById("threatGraphContainer");
-    if (!container) return;
+function getDisplayFields(
+    item,
+    type
+) {
 
-    // Clear container
-    container.innerHTML = "";
+    const preferred =
+        type === "url"
+            ? [
+                "url",
+                "domain",
+                "protocol",
+                "risk",
+                "riskScore",
+                "reputation",
+                "threat",
+                "threatLevel",
+                "category",
+                "status",
+                "reason",
+                "message"
+            ]
+            : [
+                "ip",
+                "country",
+                "countryName",
+                "region",
+                "regionName",
+                "city",
+                "isp",
+                "organization",
+                "org",
+                "asn",
+                "latitude",
+                "longitude",
+                "risk",
+                "riskScore",
+                "reputation",
+                "threat",
+                "threatLevel",
+                "status",
+                "reason"
+            ];
 
-    const nodes = buildGraphNodes(data);
+    const fields = [];
 
-    // Create SVG overlay for connecting edges
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "threat-graph-svg");
+    preferred.forEach(
+        function (key) {
 
-    const emailNode = nodes.find(n => n.type === "email");
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    item,
+                    key
+                ) &&
+                item[key] !== null &&
+                item[key] !== undefined &&
+                item[key] !== ""
+            ) {
 
-    if (emailNode) {
-        nodes.forEach(node => {
-            if (node !== emailNode) {
-                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-                line.setAttribute("x1", emailNode.x + "%");
-                line.setAttribute("y1", emailNode.y + "%");
-                line.setAttribute("x2", node.x + "%");
-                line.setAttribute("y2", node.y + "%");
-                line.setAttribute("stroke", "#b8c9e0");
-                line.setAttribute("stroke-width", "2");
-                if (node.type === "url") {
-                    line.setAttribute("stroke-dasharray", "4");
+                fields.push({
+                    key: key,
+                    value: item[key]
+                });
+            }
+        }
+    );
+
+    if (
+        fields.length === 0
+    ) {
+
+        Object.keys(
+            item
+        ).forEach(
+            function (key) {
+
+                const value =
+                    item[key];
+
+                if (
+                    value === null ||
+                    value === undefined ||
+                    value === ""
+                ) {
+                    return;
                 }
-                svg.appendChild(line);
+
+                if (
+                    typeof value ===
+                        "object"
+                ) {
+
+                    fields.push({
+                        key: key,
+                        value:
+                            JSON.stringify(
+                                value
+                            )
+                    });
+
+                } else {
+
+                    fields.push({
+                        key: key,
+                        value: value
+                    });
+                }
             }
-        });
+        );
     }
 
-    container.appendChild(svg);
-
-    // Create DOM node elements
-    nodes.forEach(node => {
-        const el = document.createElement("div");
-        // CSS expects .graph-node.email, .graph-node.sender, .graph-node.url, .graph-node.ip
-        el.className = "graph-node " + node.type;
-        el.style.left = node.x + "%";
-        el.style.top = node.y + "%";
-        el.title = node.fullValue || node.label;
-
-        const icon = document.createElement("span");
-        icon.className = "graph-node-icon";
-        icon.textContent = getGraphNodeIcon(node.type);
-
-        const label = document.createElement("span");
-        label.className = "graph-node-label";
-        label.textContent = node.label;
-
-        el.appendChild(icon);
-        el.appendChild(label);
-        container.appendChild(el);
-    });
+    return fields.slice(
+        0,
+        12
+    );
 }
 
-function buildGraphNodes(data) {
-    const nodes = [];
 
-    // Central Email node
-    nodes.push({
-        id: "email-center",
-        type: "email",
-        label: "Suspicious Email",
-        fullValue: data.fileName || "Email Evidence",
-        x: 50,
-        y: 45
-    });
+/* =========================================================
+   GEOLOCATION
+   ========================================================= */
 
-    // Sender Domain node (top-left)
-    const sender = data.email?.sender || data.sender || "";
-    const senderDomain = extractDomainFromEmail(sender);
-    if (senderDomain) {
-        nodes.push({
-            id: "sender-domain",
-            type: "sender",
-            label: shortenText(senderDomain, 20),
-            fullValue: senderDomain,
-            x: 20,
-            y: 20
-        });
+function updateGeoLocation(data) {
+
+    const geo =
+        data.geoLocation ||
+        data.geolocation ||
+        data.geo ||
+        data.ipGeolocation ||
+        null;
+
+    if (!geo) {
+        return;
     }
 
-    // Extracted URLs (right side)
-    const urls = Array.isArray(data.urls) ? data.urls.slice(0, 3) : [];
-    urls.forEach((url, i) => {
-        nodes.push({
-            id: "url-" + i,
-            type: "url",
-            label: shortenText(url, 22),
-            fullValue: url,
-            x: 80,
-            y: 20 + i * 25
-        });
-    });
+    const ipContainer =
+        document.getElementById(
+            "ipAnalysis"
+        );
 
-    // Extracted IP addresses (bottom-left)
-    const ips = getCombinedIPs(data).slice(0, 3);
-    ips.forEach((ip, i) => {
-        nodes.push({
-            id: "ip-" + i,
-            type: "ip",
-            label: ip,
-            fullValue: ip,
-            x: 22 + i * 24,
-            y: 82
-        });
-    });
-
-    return nodes;
-}
-
-function getGraphNodeIcon(type) {
-    switch (type) {
-        case "email": return "📧";
-        case "sender": return "👤";
-        case "url": return "🔗";
-        case "ip": return "🌐";
-        default: return "🔎";
-    }
-}
-
-// =========================================================
-// 15. NAVIGATION & SCROLL TRACKING
-// =========================================================
-
-function handleNavClick(event, sectionId) {
-    if (event) event.preventDefault();
-
-    const target = document.getElementById(sectionId);
-    if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!ipContainer) {
+        return;
     }
 
-    updateActiveNavLink(sectionId);
-}
+    let existingPanel =
+        ipContainer.querySelector(
+            ".intelligence-panel"
+        );
 
-function updateActiveNavLink(sectionId) {
-    const navLinks = document.querySelectorAll(".nav-item");
-    navLinks.forEach(link => {
-        const href = link.getAttribute("href");
-        if (href === ("#" + sectionId)) {
-            link.classList.add("active");
-        } else {
-            link.classList.remove("active");
-        }
-    });
-}
+    if (!existingPanel) {
 
-function setupScrollSpy() {
-    const sections = document.querySelectorAll("section[id]");
-    window.addEventListener("scroll", () => {
-        let current = "";
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop - 120;
-            if (window.pageYOffset >= sectionTop) {
-                current = section.getAttribute("id");
+        existingPanel =
+            document.createElement(
+                "div"
+            );
+
+        existingPanel.className =
+            "intelligence-panel";
+
+        ipContainer.innerHTML = "";
+
+        ipContainer.appendChild(
+            existingPanel
+        );
+    }
+
+    const geoCard =
+        document.createElement(
+            "div"
+        );
+
+    geoCard.className =
+        "analysis-item intelligence-card geo-card";
+
+    const heading =
+        document.createElement(
+            "div"
+        );
+
+    heading.className =
+        "intelligence-title";
+
+    heading.textContent =
+        "Geolocation Intelligence";
+
+    geoCard.appendChild(
+        heading
+    );
+
+    const geoFields = [
+        "country",
+        "countryName",
+        "region",
+        "regionName",
+        "city",
+        "isp",
+        "organization",
+        "org",
+        "asn",
+        "latitude",
+        "longitude",
+        "coordinates"
+    ];
+
+    let added = 0;
+
+    geoFields.forEach(
+        function (key) {
+
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    geo,
+                    key
+                ) &&
+                geo[key] !== null &&
+                geo[key] !== undefined &&
+                geo[key] !== ""
+            ) {
+
+                const row =
+                    document.createElement(
+                        "div"
+                    );
+
+                row.className =
+                    "intelligence-row";
+
+                const label =
+                    document.createElement(
+                        "span"
+                    );
+
+                label.className =
+                    "intelligence-label";
+
+                label.textContent =
+                    formatLabel(
+                        key
+                    );
+
+                const value =
+                    document.createElement(
+                        "span"
+                    );
+
+                value.className =
+                    "intelligence-value";
+
+                value.textContent =
+                    formatIntelligenceValue(
+                        geo[key]
+                    );
+
+                row.appendChild(
+                    label
+                );
+
+                row.appendChild(
+                    value
+                );
+
+                geoCard.appendChild(
+                    row
+                );
+
+                added++;
             }
-        });
-        if (current) {
-            updateActiveNavLink(current);
         }
+    );
+
+    if (added === 0) {
+
+        const raw =
+            document.createElement(
+                "pre"
+            );
+
+        raw.className =
+            "intelligence-raw";
+
+        raw.textContent =
+            JSON.stringify(
+                geo,
+                null,
+                2
+            );
+
+        geoCard.appendChild(
+            raw
+        );
+    }
+
+    existingPanel.appendChild(
+        geoCard
+    );
+}
+
+
+/* =========================================================
+   THREAT GRAPH
+   ========================================================= */
+
+function updateThreatGraph(data) {
+
+    const graphData =
+        data.threatGraph ||
+        data.graph ||
+        data.relationshipGraph ||
+        null;
+
+    const container =
+        document.getElementById(
+            "threatGraphContainer"
+        );
+
+    const emptyState =
+        document.getElementById(
+            "graphEmptyState"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    if (!graphData) {
+
+        if (emptyState) {
+            emptyState.style.display =
+                "flex";
+        }
+
+        return;
+    }
+
+    window.currentThreatGraph =
+        graphData;
+
+    if (emptyState) {
+        emptyState.style.display =
+            "none";
+    }
+
+    /*
+       Use the existing renderer if one exists.
+       This does not replace the application's
+       graph implementation.
+    */
+
+    if (
+        typeof window.renderThreatGraph ===
+        "function"
+    ) {
+
+        try {
+
+            window.renderThreatGraph(
+                graphData
+            );
+
+        } catch (error) {
+
+            console.error(
+                "Threat graph rendering error:",
+                error
+            );
+        }
+    }
+}
+
+
+/* =========================================================
+   RESET INVESTIGATION
+   ========================================================= */
+
+function resetInvestigation() {
+
+    currentAnalysisData = null;
+    currentFile = null;
+    isAnalyzing = false;
+
+    const fileInput =
+        document.getElementById(
+            "emailFile"
+        );
+
+    if (fileInput) {
+        fileInput.value = "";
+    }
+
+    const idsToReset = [
+        "threatScore",
+        "verdict",
+        "confidence",
+        "urlCount",
+        "ipCount",
+        "sender",
+        "recipient",
+        "subject",
+        "emailDate",
+        "messageId",
+        "replyTo",
+        "spfStatus",
+        "dkimStatus",
+        "dmarcStatus",
+        "authDetails",
+        "attachmentsList",
+        "indicators",
+        "extractedUrls",
+        "extractedIPs",
+        "relayPath",
+        "headerIPs",
+        "emailBodyText",
+        "rawHeadersText",
+        "urlAnalysis",
+        "ipAnalysis"
+    ];
+
+    idsToReset.forEach(
+        function (id) {
+
+            const element =
+                document.getElementById(
+                    id
+                );
+
+            if (!element) {
+                return;
+            }
+
+            if (
+                id === "attachmentsList" ||
+                id === "indicators" ||
+                id === "extractedUrls" ||
+                id === "extractedIPs" ||
+                id === "relayPath" ||
+                id === "headerIPs" ||
+                id === "urlAnalysis" ||
+                id === "ipAnalysis"
+            ) {
+
+                element.innerHTML = "";
+
+            } else {
+
+                element.textContent = "—";
+            }
+        }
+    );
+
+    const scoreBar =
+        document.getElementById(
+            "scoreBar"
+        );
+
+    if (scoreBar) {
+        scoreBar.style.width = "0%";
+    }
+
+    const htmlPreview =
+        document.getElementById(
+            "emailHtmlPreview"
+        );
+
+    if (htmlPreview) {
+        htmlPreview.innerHTML = "";
+    }
+
+    const graphContainer =
+        document.getElementById(
+            "threatGraphContainer"
+        );
+
+    if (graphContainer) {
+
+        const svg =
+            graphContainer.querySelector(
+                ".threat-graph-svg"
+            );
+
+        if (svg) {
+            svg.innerHTML = "";
+        }
+    }
+
+    const graphEmptyState =
+        document.getElementById(
+            "graphEmptyState"
+        );
+
+    if (graphEmptyState) {
+
+        graphEmptyState.style.display =
+            "flex";
+    }
+
+    showAnalysisMessage(
+        "Ready for a new email analysis.",
+        "info"
+    );
+
+    resetAnalysisButton();
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
     });
 }
 
-// =========================================================
-// 16. EXPORT REPORT & RESET INVESTIGATION
-// =========================================================
+
+/* =========================================================
+   EXPORT REPORT
+   ========================================================= */
 
 function exportReport() {
-    if (!latestAnalysis) {
-        alert("Please analyze an email before exporting a report.");
+
+    if (!currentAnalysisData) {
+
+        alert(
+            "Please analyze an email before exporting the report."
+        );
+
         return;
     }
+
     window.print();
 }
 
-function resetInvestigation() {
-    latestAnalysis = null;
 
-    const fileInput = document.getElementById("emailFile");
-    if (fileInput) fileInput.value = "";
-
-    setAnalysisMessage("", "#1e3a8a");
-
-    // Reset stats
-    setText("threatScore", "---");
-    const scoreBar = document.getElementById("scoreBar");
-    if (scoreBar) scoreBar.style.width = "0%";
-
-    const verdictEl = document.getElementById("verdict");
-    if (verdictEl) {
-        verdictEl.textContent = "---";
-        verdictEl.className = "stat-value verdict-value";
-    }
-
-    setText("verdictDescription", "Awaiting email analysis");
-    setText("confidence", "---");
-    setText("urlCount", "---");
-    setText("ipCount", "---");
-
-    // Reset email info
-    ["sender", "recipient", "subject", "emailDate", "messageId", "replyTo"].forEach(id => setText(id, "---"));
-
-    // Reset panels
-    updateAuthBadge("spfStatus", "NOT CHECKED");
-    updateAuthBadge("dkimStatus", "NOT CHECKED");
-    updateAuthBadge("dmarcStatus", "NOT CHECKED");
-
-    ["indicators", "extractedUrls", "extractedURLs", "extractedIPs", "relayPath", "headerPath", "headerIPs", "urlAnalysis", "ipAnalysis", "attachmentsList", "authDetails"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '<div class="empty-state">No analysis performed yet.</div>';
-    });
-
-    // Reset content viewer
-    setText("emailBodyText", "No email analyzed yet.");
-    setText("emailHtmlPreview", "No HTML content available.");
-    setText("rawHeadersText", "No headers available.");
-
-    // Reset graph
-    const graphContainer = document.getElementById("threatGraphContainer");
-    if (graphContainer) {
-        graphContainer.innerHTML = '<div class="graph-empty" id="graphEmptyState"><div class="graph-icon">🕸️</div><h3>Threat Relationship Graph</h3><p>Analyze an email to visualize relationships between the sender, URLs and IP infrastructure.</p></div>';
-    }
-}
-
-// =========================================================
-// 17. DRAG & DROP SUPPORT
-// =========================================================
-
-function setupDragAndDrop() {
-    const dropZone = document.querySelector(".upload-card");
-    const fileInput = document.getElementById("emailFile");
-    if (!dropZone || !fileInput) return;
-
-    ["dragenter", "dragover"].forEach(evt => {
-        dropZone.addEventListener(evt, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.add("drag-over");
-        });
-    });
-
-    ["dragleave", "drop"].forEach(evt => {
-        dropZone.addEventListener(evt, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropZone.classList.remove("drag-over");
-        });
-    });
-
-    dropZone.addEventListener("drop", (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files && files.length > 0) {
-            fileInput.files = files;
-            processFileAnalysis(files[0]);
-        }
-    });
-}
-
-// =========================================================
-// 18. HELPERS & LOGOUT
-// =========================================================
-
-function setText(elementId, text) {
-    const el = document.getElementById(elementId);
-    if (el) el.textContent = text;
-}
-
-function formatDate(val) {
-    if (!val) return "---";
-    try {
-        const d = new Date(val);
-        return isNaN(d.getTime()) ? String(val) : d.toLocaleString();
-    } catch (e) {
-        return String(val);
-    }
-}
-
-function shortenText(str, maxLen) {
-    if (!str) return "";
-    return str.length <= maxLen ? str : str.substring(0, maxLen - 3) + "...";
-}
-
-function extractDomainFromEmail(sender) {
-    const match = String(sender || "").match(/@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
-    return match ? match[1].toLowerCase() : "";
-}
-
-function getVerdictClass(verdict) {
-    const v = String(verdict || "").toUpperCase();
-    if (v.includes("HIGH")) return "verdict-high";
-    if (v.includes("MEDIUM")) return "verdict-medium";
-    return "verdict-low";
-}
-
-function getIPStatusClass(status) {
-    const s = String(status || "").toUpperCase();
-    if (s === "SUCCESS") return "status-success";
-    if (s === "SKIPPED") return "status-skipped";
-    return "status-error";
-}
-
-function escapeHtml(str) {
-    return String(str || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+/* =========================================================
+   LOGOUT
+   ========================================================= */
 
 function logout() {
-    sessionStorage.removeItem("investigator_session");
-    latestAnalysis = null;
-    window.location.href = "index.html";
+
+    sessionStorage.removeItem(
+        "investigator_session"
+    );
+
+    window.location.href =
+        "index.html";
 }
 
-// =========================================================
-// 19. PAGE LOAD LISTENER
-// =========================================================
 
-document.addEventListener("DOMContentLoaded", () => {
-    checkSession();
-    setupDragAndDrop();
-    setupScrollSpy();
+/* =========================================================
+   BUTTON STATE
+   ========================================================= */
 
-    const fileInput = document.getElementById("emailFile");
-    if (fileInput) {
-        fileInput.addEventListener("change", () => {
-            if (fileInput.files && fileInput.files[0]) {
-                setAnalysisMessage("File selected: " + fileInput.files[0].name + " — click Analyze to begin.", "#2867ed");
-            }
-        });
+function setAnalyzeButtonState(
+    analyzing
+) {
+
+    const button =
+        document.getElementById(
+            "analyzeButton"
+        );
+
+    if (!button) {
+        return;
     }
-});
+
+    if (analyzing) {
+
+        button.disabled = true;
+
+        button.dataset.originalText =
+            button.textContent;
+
+        button.textContent =
+            "Analyzing...";
+
+    } else {
+
+        button.disabled = false;
+
+        button.textContent =
+            button.dataset.originalText ||
+            "Analyze Email";
+    }
+}
+
+
+function resetAnalysisButton() {
+    setAnalyzeButtonState(false);
+}
+
+
+/* =========================================================
+   STATUS MESSAGE
+   ========================================================= */
+
+function showAnalysisMessage(
+    message,
+    type
+) {
+
+    const element =
+        document.getElementById(
+            "analysisMessage"
+        );
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent =
+        message;
+
+    element.classList.remove(
+        "success",
+        "error",
+        "loading",
+        "info"
+    );
+
+    if (type) {
+        element.classList.add(
+            type
+        );
+    }
+}
+
+
+/* =========================================================
+   SCROLL SPY
+   ========================================================= */
+
+function setupScrollSpy() {
+
+    const sections = [
+        "dashboard",
+        "emailForensics",
+        "emailContent",
+        "urlIntelligence",
+        "geoLocation",
+        "threatGraph"
+    ];
+
+    const navItems =
+        document.querySelectorAll(
+            ".nav-item"
+        );
+
+    if (!sections.length) {
+        return;
+    }
+
+    const observer =
+        new IntersectionObserver(
+            function (entries) {
+
+                entries.forEach(
+                    function (entry) {
+
+                        if (
+                            !entry.isIntersecting
+                        ) {
+                            return;
+                        }
+
+                        const id =
+                            entry.target.id;
+
+                        activateNavigationItem(
+                            id
+                        );
+                    }
+                );
+
+            },
+            {
+                threshold: 0.2,
+                rootMargin:
+                    "-20% 0px -60% 0px"
+            }
+        );
+
+    sections.forEach(
+        function (id) {
+
+            const section =
+                document.getElementById(
+                    id
+                );
+
+            if (section) {
+                observer.observe(
+                    section
+                );
+            }
+        }
+    );
+}
+
+
+/* =========================================================
+   SCROLL TO RESULTS
+   ========================================================= */
+
+function scrollToResults() {
+
+    const section =
+        document.getElementById(
+            "emailForensics"
+        );
+
+    if (!section) {
+        return;
+    }
+
+    setTimeout(
+        function () {
+
+            section.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        },
+        300
+    );
+}
+
+
+/* =========================================================
+   UTILITY - SET TEXT
+   ========================================================= */
+
+function setText(
+    id,
+    value
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+    if (!element) {
+        return;
+    }
+
+    element.textContent =
+        value === null ||
+        value === undefined ||
+        value === ""
+            ? "—"
+            : String(value);
+}
+
+
+/* =========================================================
+   UTILITY - GET VALUE
+   ========================================================= */
+
+function getValue(
+    object,
+    keys,
+    defaultValue
+) {
+
+    if (
+        !object ||
+        typeof object !== "object"
+    ) {
+        return defaultValue;
+    }
+
+    for (
+        const key of keys
+    ) {
+
+        if (
+            Object.prototype.hasOwnProperty.call(
+                object,
+                key
+            ) &&
+            object[key] !== null &&
+            object[key] !== undefined
+        ) {
+
+            return object[key];
+        }
+    }
+
+    return defaultValue;
+}
+
+
+/* =========================================================
+   FORMAT SCORE
+   ========================================================= */
+
+function formatScore(
+    value
+) {
+
+    const number =
+        parseFloat(value);
+
+    if (
+        Number.isNaN(number)
+    ) {
+        return String(value);
+    }
+
+    return Math.round(
+        number
+    );
+}
+
+
+/* =========================================================
+   FORMAT CONFIDENCE
+   ========================================================= */
+
+function formatConfidence(
+    value
+) {
+
+    let number =
+        parseFloat(value);
+
+    if (
+        Number.isNaN(number)
+    ) {
+        return String(value);
+    }
+
+    /*
+       Support:
+       0.95 -> 95
+       95   -> 95
+    */
+
+    if (
+        number >= 0 &&
+        number <= 1
+    ) {
+        number *= 100;
+    }
+
+    return Math.round(
+        number
+    );
+}
+
+
+/* =========================================================
+   FORMAT STATUS
+   ========================================================= */
+
+function formatStatus(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return "NOT CONFIGURED";
+    }
+
+    if (
+        typeof value === "object"
+    ) {
+
+        if (value.status) {
+            return String(
+                value.status
+            ).toUpperCase();
+        }
+
+        if (value.result) {
+            return String(
+                value.result
+            ).toUpperCase();
+        }
+
+        return JSON.stringify(
+            value
+        );
+    }
+
+    return String(
+        value
+    ).toUpperCase();
+}
+
+
+/* =========================================================
+   FORMAT LABEL
+   ========================================================= */
+
+function formatLabel(
+    value
+) {
+
+    return String(
+        value
+    )
+        .replace(
+            /([a-z])([A-Z])/g,
+            "$1 $2"
+        )
+        .replace(
+            /_/g,
+            " "
+        )
+        .replace(
+            /\b\w/g,
+            function (character) {
+                return character.toUpperCase();
+            }
+        );
+}
+
+
+/* =========================================================
+   FORMAT INTELLIGENCE VALUE
+   ========================================================= */
+
+function formatIntelligenceValue(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "—";
+    }
+
+    if (
+        typeof value === "object"
+    ) {
+        return JSON.stringify(
+            value
+        );
+    }
+
+    return String(
+        value
+    );
+}
+
+
+/* =========================================================
+   RENDER LIST
+   ========================================================= */
+
+function renderList(
+    elementId,
+    items,
+    emptyMessage
+) {
+
+    const container =
+        document.getElementById(
+            elementId
+        );
+
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = "";
+
+    if (
+        items === null ||
+        items === undefined ||
+        (
+            Array.isArray(items) &&
+            items.length === 0
+        )
+    ) {
+
+        const empty =
+            document.createElement(
+                "div"
+            );
+
+        empty.className =
+            "empty-message";
+
+        empty.textContent =
+            emptyMessage;
+
+        container.appendChild(
+            empty
+        );
+
+        return;
+    }
+
+    if (!Array.isArray(items)) {
+        items = [items];
+    }
+
+    items.forEach(
+        function (item) {
+
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+            row.className =
+                "forensic-item";
+
+            if (
+                typeof item === "object" &&
+                item !== null
+            ) {
+
+                row.textContent =
+                    JSON.stringify(
+                        item,
+                        null,
+                        2
+                    );
+
+            } else {
+
+                row.textContent =
+                    String(item);
+            }
+
+            container.appendChild(
+                row
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   ESCAPE HTML
+   ========================================================= */
+
+function escapeHtml(
+    value
+) {
+
+    return String(value)
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+}
+
+
+/* =========================================================
+   GLOBAL FUNCTIONS
+   ========================================================= */
+
+window.handleNavClick =
+    handleNavClick;
+
+window.logout =
+    logout;
+
+window.resetInvestigation =
+    resetInvestigation;
+
+window.exportReport =
+    exportReport;
+
+window.analyzeEmail =
+    analyzeEmail;
+
+window.switchContentTab =
+    switchContentTab;
+
+window.processFileAnalysis =
+    processFileAnalysis;
+
+window.displayResults =
+    displayResults;
+
+window.updateIntelligence =
+    updateIntelligence;
+
+window.renderIntelligence =
+    renderIntelligence;
+
+
+/* =========================================================
+   READY
+   ========================================================= */
+
+console.log(
+    "Email Threat Intelligence dashboard.js ready."
+);

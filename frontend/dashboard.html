@@ -8,14 +8,1673 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="css/dashboard.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet"
+    >
+
+    <style>
+
+        /* =========================================================
+           GLOBAL
+        ========================================================= */
+
+        :root {
+            --bg: #07101f;
+            --bg-2: #0a1629;
+
+            --sidebar: #050c18;
+            --sidebar-border: #1b3456;
+
+            --panel: #0d1d34;
+            --panel-2: #102542;
+            --panel-3: #132b4d;
+
+            --border: #24476e;
+            --border-light: #32618f;
+
+            --blue: #2998ff;
+            --blue-bright: #45b7ff;
+            --cyan: #36d9ff;
+
+            --green: #27e6a5;
+            --yellow: #ffd166;
+            --orange: #ff9f43;
+            --red: #ff5577;
+
+            --text: #f4f8ff;
+            --text-2: #d1e0f2;
+            --text-3: #9fb4cc;
+            --muted: #7189a5;
+
+            --shadow:
+                0 18px 45px rgba(0, 0, 0, 0.30);
+
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(
+                    circle at 80% 0%,
+                    rgba(41, 152, 255, 0.12),
+                    transparent 30%
+                ),
+                linear-gradient(
+                    135deg,
+                    #050b16 0%,
+                    #081426 50%,
+                    #0a1930 100%
+                );
+
+            color: var(--text);
+
+            font-family: "Inter", Arial, sans-serif;
+
+            font-size: 16px;
+            line-height: 1.6;
+
+            min-height: 100vh;
+        }
+
+        button,
+        input {
+            font-family: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        ::selection {
+            background: rgba(41, 152, 255, 0.35);
+            color: white;
+        }
+
+
+        /* =========================================================
+           SIDEBAR
+        ========================================================= */
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+
+            width: 260px;
+            height: 100vh;
+
+            padding: 28px 18px;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    #050b17 0%,
+                    #071426 100%
+                );
+
+            border-right: 1px solid var(--sidebar-border);
+
+            display: flex;
+            flex-direction: column;
+
+            z-index: 1000;
+
+            box-shadow:
+                10px 0 35px rgba(0, 0, 0, 0.22);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+
+            padding: 4px 8px 22px;
+        }
+
+        .brand-icon {
+            width: 48px;
+            height: 48px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 14px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #168bff,
+                    #2564d8
+                );
+
+            box-shadow:
+                0 10px 30px rgba(41, 152, 255, 0.28);
+
+            font-size: 24px;
+        }
+
+        .brand h2 {
+            margin: 0;
+
+            font-size: 18px;
+            line-height: 1.2;
+
+            color: #ffffff;
+            font-weight: 800;
+        }
+
+        .brand span {
+            display: block;
+
+            margin-top: 4px;
+
+            font-size: 12px;
+            font-weight: 600;
+
+            color: var(--blue-bright);
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-line {
+            height: 1px;
+            background: var(--sidebar-border);
+
+            margin: 0 8px 20px;
+        }
+
+        .navigation {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .nav-item {
+            min-height: 48px;
+
+            display: flex;
+            align-items: center;
+            gap: 13px;
+
+            padding: 0 15px;
+
+            border: 1px solid transparent;
+            border-radius: 11px;
+
+            color: var(--text-3);
+
+            text-decoration: none;
+
+            font-size: 14px;
+            font-weight: 600;
+
+            transition:
+                background 0.2s ease,
+                color 0.2s ease,
+                border 0.2s ease,
+                transform 0.2s ease;
+        }
+
+        .nav-item:hover {
+            color: white;
+
+            background: rgba(41, 152, 255, 0.10);
+
+            border-color: rgba(41, 152, 255, 0.18);
+
+            transform: translateX(2px);
+        }
+
+        .nav-item.active {
+            color: white;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    rgba(41, 152, 255, 0.28),
+                    rgba(41, 152, 255, 0.10)
+                );
+
+            border-color: rgba(69, 183, 255, 0.30);
+
+            box-shadow:
+                inset 3px 0 0 var(--blue),
+                0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .logout-button {
+            margin-top: auto;
+
+            min-height: 48px;
+
+            border: 1px solid #263d59;
+            border-radius: 11px;
+
+            background: rgba(255,255,255,0.025);
+
+            color: var(--text-3);
+
+            font-size: 14px;
+            font-weight: 600;
+
+            transition: 0.2s ease;
+        }
+
+        .logout-button:hover {
+            background: rgba(255, 85, 119, 0.10);
+            border-color: rgba(255, 85, 119, 0.35);
+            color: #ff8da5;
+        }
+
+
+        /* =========================================================
+           MAIN
+        ========================================================= */
+
+        .main-content {
+            margin-left: 260px;
+
+            width: calc(100% - 260px);
+
+            max-width: 1500px;
+
+            padding: 42px 48px 80px;
+        }
+
+
+        /* =========================================================
+           HEADER
+        ========================================================= */
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+
+            gap: 30px;
+
+            margin-bottom: 48px;
+        }
+
+        .eyebrow {
+            margin-bottom: 10px;
+
+            color: var(--cyan);
+
+            font-size: 12px;
+            font-weight: 800;
+
+            letter-spacing: 1.8px;
+        }
+
+        .page-header h1 {
+            margin: 0;
+
+            font-size: clamp(30px, 4vw, 44px);
+
+            line-height: 1.12;
+
+            letter-spacing: -1.5px;
+
+            color: white;
+        }
+
+        .page-header p {
+            margin: 12px 0 0;
+
+            color: var(--text-3);
+
+            font-size: 16px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            flex-wrap: wrap;
+
+            justify-content: flex-end;
+        }
+
+        .header-btn {
+            height: 44px;
+
+            padding: 0 17px;
+
+            border-radius: 10px;
+
+            font-size: 13px;
+            font-weight: 700;
+
+            transition: 0.2s ease;
+        }
+
+        .header-btn.secondary {
+            background: #0e2038;
+            color: var(--text-2);
+
+            border: 1px solid var(--border);
+        }
+
+        .header-btn.secondary:hover {
+            border-color: var(--blue);
+            color: white;
+        }
+
+        .header-btn.primary {
+            background:
+                linear-gradient(
+                    135deg,
+                    #238fff,
+                    #1970dc
+                );
+
+            color: white;
+
+            border: 1px solid #3aa5ff;
+
+            box-shadow:
+                0 8px 22px rgba(41, 152, 255, 0.24);
+        }
+
+        .header-btn.primary:hover {
+            transform: translateY(-1px);
+
+            box-shadow:
+                0 12px 28px rgba(41, 152, 255, 0.35);
+        }
+
+        .system-status {
+            height: 44px;
+
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 0 13px;
+
+            border-radius: 10px;
+
+            background: rgba(39, 230, 165, 0.06);
+
+            border: 1px solid rgba(39, 230, 165, 0.22);
+
+            color: #8df5ce;
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+
+            border-radius: 50%;
+
+            background: var(--green);
+
+            box-shadow:
+                0 0 0 4px rgba(39,230,165,0.12),
+                0 0 12px rgba(39,230,165,0.8);
+        }
+
+
+        /* =========================================================
+           SECTIONS
+        ========================================================= */
+
+        .section {
+            margin-bottom: 54px;
+
+            scroll-margin-top: 30px;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+
+            gap: 15px;
+
+            margin-bottom: 20px;
+        }
+
+        .section-icon {
+            width: 46px;
+            height: 46px;
+
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 13px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(41,152,255,0.22),
+                    rgba(54,217,255,0.08)
+                );
+
+            border: 1px solid rgba(69,183,255,0.22);
+
+            font-size: 21px;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+
+            color: white;
+
+            font-size: 23px;
+            line-height: 1.25;
+
+            letter-spacing: -0.3px;
+        }
+
+        .section-heading p {
+            margin: 4px 0 0;
+
+            color: var(--text-3);
+
+            font-size: 14px;
+        }
+
+
+        /* =========================================================
+           UPLOAD CARD
+        ========================================================= */
+
+        .upload-card {
+            display: grid;
+
+            grid-template-columns: auto 1fr auto;
+
+            align-items: center;
+
+            gap: 22px;
+
+            padding: 25px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(19, 51, 88, 0.95),
+                    rgba(11, 31, 57, 0.98)
+                );
+
+            border: 1px solid #2b5680;
+
+            border-radius: var(--radius);
+
+            box-shadow: var(--shadow);
+        }
+
+        .upload-icon {
+            width: 62px;
+            height: 62px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 15px;
+
+            background: rgba(41,152,255,0.16);
+
+            border: 1px solid rgba(69,183,255,0.25);
+
+            font-size: 28px;
+        }
+
+        .upload-description h3 {
+            margin: 0 0 4px;
+
+            color: white;
+
+            font-size: 17px;
+        }
+
+        .upload-description p {
+            margin: 0;
+
+            color: var(--text-3);
+
+            font-size: 14px;
+        }
+
+        .analysis-message {
+            margin-top: 8px !important;
+
+            color: var(--cyan) !important;
+
+            font-weight: 600;
+        }
+
+        .upload-controls {
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+        }
+
+        #emailFile {
+            width: 210px;
+
+            padding: 10px;
+
+            border-radius: 9px;
+
+            background: #08182d;
+
+            color: var(--text-2);
+
+            border: 1px solid var(--border);
+
+            font-size: 12px;
+        }
+
+        #analyzeButton {
+            height: 44px;
+
+            padding: 0 19px;
+
+            border-radius: 9px;
+
+            border: 1px solid #3ba7ff;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2498ff,
+                    #176dd5
+                );
+
+            color: white;
+
+            font-weight: 800;
+
+            box-shadow:
+                0 8px 20px rgba(41,152,255,0.22);
+        }
+
+        #analyzeButton:hover {
+            transform: translateY(-1px);
+        }
+
+
+        /* =========================================================
+           STATS
+        ========================================================= */
+
+        .stats-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(5, minmax(0, 1fr));
+
+            gap: 15px;
+        }
+
+        .stat-card {
+            min-height: 190px;
+
+            padding: 21px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #102746,
+                    #0b1a31
+                );
+
+            border: 1px solid #284c73;
+
+            border-radius: var(--radius);
+
+            box-shadow:
+                0 10px 30px rgba(0,0,0,0.18);
+
+            transition:
+                transform 0.2s ease,
+                border 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+
+            border-color: #3b6d9d;
+        }
+
+        .stat-icon {
+            width: 38px;
+            height: 38px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 10px;
+
+            background: rgba(41,152,255,0.13);
+
+            margin-bottom: 17px;
+
+            font-size: 18px;
+        }
+
+        .stat-label {
+            color: var(--text-3);
+
+            font-size: 12px;
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.8px;
+        }
+
+        .stat-value {
+            margin-top: 6px;
+
+            color: white;
+
+            font-size: 31px;
+            line-height: 1.2;
+
+            font-weight: 800;
+
+            word-break: break-word;
+        }
+
+        .stat-value small {
+            color: var(--muted);
+
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stat-description {
+            margin-top: 10px;
+
+            color: var(--text-3);
+
+            font-size: 12px;
+
+            line-height: 1.5;
+        }
+
+        .verdict-value {
+            color: var(--yellow);
+        }
+
+        .score-bar {
+            height: 7px;
+
+            margin-top: 18px;
+
+            overflow: hidden;
+
+            border-radius: 99px;
+
+            background: #07111f;
+
+            border: 1px solid #1b3552;
+        }
+
+        .score-fill {
+            width: 0%;
+
+            height: 100%;
+
+            border-radius: inherit;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #28e6a5,
+                    #ffd166,
+                    #ff5577
+                );
+
+            transition: width 0.7s ease;
+        }
+
+
+        /* =========================================================
+           PANELS
+        ========================================================= */
+
+        .panel {
+            margin-bottom: 17px;
+
+            padding: 24px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(14, 34, 59, 0.98),
+                    rgba(10, 25, 45, 0.98)
+                );
+
+            border: 1px solid #294f78;
+
+            border-radius: var(--radius);
+
+            box-shadow:
+                0 12px 32px rgba(0,0,0,0.18);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+
+            min-height: 25px;
+
+            margin-bottom: 19px;
+
+            color: white;
+
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+
+        /* =========================================================
+           EMAIL INFORMATION
+        ========================================================= */
+
+        .information-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 11px;
+        }
+
+        .information-item {
+            min-width: 0;
+
+            padding: 16px 17px;
+
+            background:
+                rgba(6, 18, 34, 0.58);
+
+            border: 1px solid #244565;
+
+            border-radius: 10px;
+        }
+
+        .information-item strong {
+            display: block;
+
+            margin-bottom: 6px;
+
+            color: var(--cyan);
+
+            font-size: 10px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 1px;
+        }
+
+        .information-item span {
+            display: block;
+
+            color: #f1f6fc;
+
+            font-family: "JetBrains Mono", monospace;
+
+            font-size: 13px;
+
+            line-height: 1.65;
+
+            overflow-wrap: anywhere;
+        }
+
+
+        /* =========================================================
+           AUTHENTICATION
+        ========================================================= */
+
+        .auth-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+
+            gap: 14px;
+        }
+
+        .auth-card {
+            padding: 19px;
+
+            background: #0a1b30;
+
+            border: 1px solid #264b70;
+
+            border-radius: 11px;
+        }
+
+        .auth-label {
+            color: var(--text-2);
+
+            font-size: 13px;
+            font-weight: 700;
+
+            margin-bottom: 10px;
+        }
+
+        .auth-badge {
+            display: inline-flex;
+
+            align-items: center;
+
+            min-height: 29px;
+
+            padding: 5px 10px;
+
+            border-radius: 7px;
+
+            font-size: 10px;
+            font-weight: 800;
+
+            letter-spacing: 0.6px;
+        }
+
+        .auth-badge.neutral {
+            color: #b9c8d9;
+
+            background: #182a3f;
+
+            border: 1px solid #314b66;
+        }
+
+        .auth-badge.success,
+        .auth-badge.pass {
+            color: #8af5ce;
+
+            background: rgba(39,230,165,0.10);
+
+            border: 1px solid rgba(39,230,165,0.28);
+        }
+
+        .auth-badge.fail,
+        .auth-badge.failure {
+            color: #ff91a7;
+
+            background: rgba(255,85,119,0.10);
+
+            border: 1px solid rgba(255,85,119,0.30);
+        }
+
+        .auth-desc {
+            display: block;
+
+            margin-top: 10px;
+
+            color: var(--muted);
+
+            font-size: 11px;
+        }
+
+        .auth-details-list {
+            margin-top: 16px;
+
+            color: var(--text-2);
+
+            font-size: 13px;
+
+            line-height: 1.7;
+        }
+
+
+        /* =========================================================
+           EMPTY STATES
+        ========================================================= */
+
+        .empty-state {
+            padding: 26px;
+
+            text-align: center;
+
+            color: var(--muted);
+
+            background: rgba(5,15,29,0.45);
+
+            border: 1px dashed #2a4d70;
+
+            border-radius: 10px;
+
+            font-size: 13px;
+        }
+
+
+        /* =========================================================
+           FORENSIC RESULTS
+        ========================================================= */
+
+        #attachmentsList,
+        #indicators,
+        #extractedUrls,
+        #extractedIPs,
+        #relayPath,
+        #headerIPs,
+        #urlAnalysis,
+        #ipAnalysis {
+            color: var(--text-2);
+
+            font-size: 14px;
+
+            line-height: 1.7;
+        }
+
+        #attachmentsList > *,
+        #indicators > *,
+        #extractedUrls > *,
+        #extractedIPs > *,
+        #relayPath > *,
+        #headerIPs > *,
+        #urlAnalysis > *,
+        #ipAnalysis > * {
+            margin-bottom: 10px;
+        }
+
+        .sub-heading {
+            margin: 25px 0 10px;
+
+            color: var(--cyan);
+
+            font-size: 13px;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.8px;
+        }
+
+
+        /* =========================================================
+           EVIDENCE TABS
+        ========================================================= */
+
+        .tab-header {
+            margin: -24px -24px 0;
+
+            padding: 14px 18px;
+
+            background: #0a1930;
+
+            border-bottom: 1px solid #294d72;
+        }
+
+        .tab-buttons {
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 8px;
+        }
+
+        .tab-btn {
+            min-height: 38px;
+
+            padding: 0 14px;
+
+            border-radius: 8px;
+
+            border: 1px solid transparent;
+
+            background: transparent;
+
+            color: var(--text-3);
+
+            font-size: 12px;
+
+            font-weight: 700;
+        }
+
+        .tab-btn:hover {
+            color: white;
+
+            background: rgba(41,152,255,0.08);
+        }
+
+        .tab-btn.active {
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #258fff,
+                    #176bd0
+                );
+
+            border-color: #3ba6ff;
+
+            box-shadow:
+                0 6px 18px rgba(41,152,255,0.20);
+        }
+
+        .content-preview-area {
+            margin-top: 24px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        .code-preview {
+            margin: 0;
+
+            min-height: 250px;
+
+            max-height: 620px;
+
+            overflow: auto;
+
+            padding: 23px;
+
+            background:
+                #050d18;
+
+            border: 1px solid #263f5b;
+
+            border-radius: 10px;
+
+            color: #dcecff;
+
+            font-family: "JetBrains Mono", monospace;
+
+            font-size: 13px;
+
+            line-height: 1.75;
+
+            white-space: pre-wrap;
+
+            overflow-wrap: anywhere;
+        }
+
+        .html-preview-frame {
+            min-height: 250px;
+
+            max-height: 620px;
+
+            overflow: auto;
+
+            padding: 25px;
+
+            background: #f7f9fc;
+
+            border: 1px solid #7890a9;
+
+            border-radius: 10px;
+
+            color: #172233;
+
+            font-size: 14px;
+
+            line-height: 1.7;
+        }
+
+
+        /* =========================================================
+           THREAT INDICATOR READABILITY
+        ========================================================= */
+
+        #indicators {
+            font-family: "Inter", Arial, sans-serif;
+        }
+
+        #indicators div,
+        #indicators p,
+        #indicators li {
+            color: #e7f0fa;
+
+            font-size: 14px;
+
+            line-height: 1.75;
+        }
+
+        #indicators strong {
+            color: white;
+        }
+
+        #indicators code,
+        #extractedUrls code,
+        #extractedIPs code,
+        #headerIPs code {
+            display: inline-block;
+
+            padding: 3px 7px;
+
+            background: #06111f;
+
+            border: 1px solid #294967;
+
+            border-radius: 5px;
+
+            color: #8fdcff;
+
+            font-family: "JetBrains Mono", monospace;
+
+            font-size: 12px;
+
+            overflow-wrap: anywhere;
+        }
+
+
+        /* =========================================================
+           URL / IP CARDS
+        ========================================================= */
+
+        #urlAnalysis .panel,
+        #ipAnalysis .panel {
+            background:
+                linear-gradient(
+                    145deg,
+                    #102746,
+                    #0a1b31
+                );
+        }
+
+        #urlAnalysis {
+            overflow-wrap: anywhere;
+        }
+
+        #ipAnalysis {
+            overflow-wrap: anywhere;
+        }
+
+
+        /* =========================================================
+           FORENSIC NOTE
+        ========================================================= */
+
+        .forensic-note {
+            padding: 17px 19px;
+
+            margin-top: 15px;
+
+            background:
+                rgba(255, 159, 67, 0.07);
+
+            border: 1px solid rgba(255, 159, 67, 0.30);
+
+            border-left: 4px solid var(--orange);
+
+            border-radius: 10px;
+        }
+
+        .forensic-note strong {
+            color: #ffd08e;
+
+            font-size: 13px;
+        }
+
+        .forensic-note p {
+            margin: 6px 0 0;
+
+            color: #d6e1ed;
+
+            font-size: 13px;
+
+            line-height: 1.6;
+        }
+
+
+        /* =========================================================
+           THREAT GRAPH
+        ========================================================= */
+
+        .graph-panel {
+            overflow: hidden;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #0b2344,
+                    #07182e
+                );
+
+            border: 1px solid #315b84;
+
+            border-radius: var(--radius);
+
+            box-shadow: var(--shadow);
+        }
+
+        #threatGraphContainer {
+            position: relative;
+
+            width: 100%;
+
+            min-height: 560px;
+
+            overflow: hidden;
+
+            background:
+                radial-gradient(
+                    circle at center,
+                    rgba(41,152,255,0.15),
+                    transparent 42%
+                ),
+                #07172c;
+        }
+
+        #threatGraphContainer svg {
+            display: block;
+
+            width: 100%;
+
+            min-height: 560px;
+
+            overflow: visible;
+        }
+
+        /* Graph edges */
+
+        #threatGraphContainer line,
+        #threatGraphContainer path {
+            stroke: #6db8ff;
+
+            stroke-width: 2;
+
+            opacity: 0.75;
+        }
+
+        /* Dashed graph edges */
+
+        #threatGraphContainer line[stroke-dasharray],
+        #threatGraphContainer path[stroke-dasharray] {
+            stroke: #8ccaff;
+
+            opacity: 0.8;
+        }
+
+        /* Graph nodes */
+
+        .graph-node {
+            position: relative;
+
+            z-index: 5;
+        }
+
+        .graph-node circle {
+            stroke: #dff4ff !important;
+
+            stroke-width: 3 !important;
+
+            filter:
+                drop-shadow(
+                    0 0 8px rgba(54,217,255,0.65)
+                );
+        }
+
+        .graph-node text {
+            fill: #ffffff !important;
+
+            font-family: "Inter", Arial, sans-serif !important;
+
+            font-size: 14px !important;
+
+            font-weight: 800 !important;
+
+            paint-order: stroke;
+
+            stroke: #07172c;
+
+            stroke-width: 5px;
+
+            stroke-linejoin: round;
+        }
+
+        .graph-empty {
+            position: absolute;
+
+            inset: 0;
+
+            display: flex;
+
+            flex-direction: column;
+
+            align-items: center;
+
+            justify-content: center;
+
+            padding: 40px;
+
+            text-align: center;
+        }
+
+        .graph-icon {
+            width: 68px;
+            height: 68px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border-radius: 18px;
+
+            background: rgba(41,152,255,0.14);
+
+            border: 1px solid rgba(69,183,255,0.28);
+
+            font-size: 30px;
+
+            margin-bottom: 15px;
+        }
+
+        .graph-empty h3 {
+            margin: 0;
+
+            color: white;
+
+            font-size: 19px;
+        }
+
+        .graph-empty p {
+            max-width: 560px;
+
+            margin: 8px 0 0;
+
+            color: var(--text-3);
+
+            font-size: 14px;
+        }
+
+        .graph-legend {
+            min-height: 62px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            flex-wrap: wrap;
+
+            gap: 25px;
+
+            padding: 12px 20px;
+
+            border-top: 1px solid #2a5077;
+
+            background: #0a1b32;
+
+            color: var(--text-2);
+
+            font-size: 12px;
+
+            font-weight: 600;
+        }
+
+
+        /* =========================================================
+           FOOTER
+        ========================================================= */
+
+        footer {
+            padding: 28px 0;
+
+            text-align: center;
+
+            color: #718aa5;
+
+            border-top: 1px solid #1a3451;
+
+            font-size: 12px;
+        }
+
+
+        /* =========================================================
+           SCROLLBAR
+        ========================================================= */
+
+        ::-webkit-scrollbar {
+            width: 9px;
+            height: 9px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #06101e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #284a6c;
+
+            border-radius: 20px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #37678f;
+        }
+
+
+        /* =========================================================
+           RESPONSIVE
+        ========================================================= */
+
+        @media (max-width: 1250px) {
+
+            .main-content {
+                padding: 36px 32px 70px;
+            }
+
+            .stats-grid {
+                grid-template-columns:
+                    repeat(3, minmax(0, 1fr));
+            }
+
+            .upload-card {
+                grid-template-columns:
+                    auto 1fr;
+            }
+
+            .upload-controls {
+                grid-column: 1 / -1;
+            }
+
+        }
+
+
+        @media (max-width: 900px) {
+
+            .sidebar {
+                width: 215px;
+            }
+
+            .main-content {
+                margin-left: 215px;
+
+                width: calc(100% - 215px);
+
+                padding: 30px 24px 60px;
+            }
+
+            .page-header {
+                flex-direction: column;
+            }
+
+            .header-actions {
+                justify-content: flex-start;
+            }
+
+            .stats-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .auth-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+
+        @media (max-width: 650px) {
+
+            .sidebar {
+                position: relative;
+
+                width: 100%;
+
+                height: auto;
+
+                min-height: auto;
+
+                padding: 16px;
+            }
+
+            .brand {
+                padding-bottom: 15px;
+            }
+
+            .navigation {
+                display: grid;
+
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .logout-button {
+                margin-top: 15px;
+            }
+
+            .main-content {
+                margin-left: 0;
+
+                width: 100%;
+
+                padding: 25px 16px 50px;
+            }
+
+            .page-header h1 {
+                font-size: 30px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .information-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .upload-card {
+                grid-template-columns: 1fr;
+            }
+
+            .upload-controls {
+                display: flex;
+
+                flex-direction: column;
+
+                align-items: stretch;
+            }
+
+            #emailFile {
+                width: 100%;
+            }
+
+            .section-heading h2 {
+                font-size: 20px;
+            }
+
+            #threatGraphContainer,
+            #threatGraphContainer svg {
+                min-height: 420px;
+            }
+
+        }
+
+
+        /* =========================================================
+           PRINT
+        ========================================================= */
+
+        @media print {
+
+            .sidebar,
+            .header-actions,
+            .upload-card {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+
+                color: black !important;
+            }
+
+            .main-content {
+                margin: 0;
+
+                width: 100%;
+
+                max-width: none;
+
+                padding: 20px;
+            }
+
+            .panel,
+            .stat-card,
+            .graph-panel {
+                box-shadow: none;
+
+                background: white !important;
+
+                border: 1px solid #999;
+            }
+
+            .panel *,
+            .stat-card *,
+            .graph-panel * {
+                color: black !important;
+            }
+
+            footer {
+                color: #555 !important;
+            }
+
+        }
+
+    </style>
 </head>
+
 
 <body>
 
-    <!-- ================= SIDEBAR ================= -->
+
+    <!-- =========================================================
+         SIDEBAR
+    ========================================================= -->
 
     <aside class="sidebar">
 
@@ -34,48 +1693,78 @@
 
         <nav class="navigation">
 
-            <a href="#dashboard" class="nav-item active" onclick="handleNavClick(event, 'dashboard')">
+            <a
+                href="#dashboard"
+                class="nav-item active"
+                onclick="handleNavClick(event, 'dashboard')"
+            >
                 📊
                 <span>Dashboard</span>
             </a>
 
-            <a href="#emailForensics" class="nav-item" onclick="handleNavClick(event, 'emailForensics')">
+            <a
+                href="#emailForensics"
+                class="nav-item"
+                onclick="handleNavClick(event, 'emailForensics')"
+            >
                 🔍
                 <span>Email Forensics</span>
             </a>
 
-            <a href="#emailContent" class="nav-item" onclick="handleNavClick(event, 'emailContent')">
+            <a
+                href="#emailContent"
+                class="nav-item"
+                onclick="handleNavClick(event, 'emailContent')"
+            >
                 📑
                 <span>Email Evidence</span>
             </a>
 
-            <a href="#urlIntelligence" class="nav-item" onclick="handleNavClick(event, 'urlIntelligence')">
+            <a
+                href="#urlIntelligence"
+                class="nav-item"
+                onclick="handleNavClick(event, 'urlIntelligence')"
+            >
                 🔗
                 <span>URL Intelligence</span>
             </a>
 
-            <a href="#geoLocation" class="nav-item" onclick="handleNavClick(event, 'geoLocation')">
+            <a
+                href="#geoLocation"
+                class="nav-item"
+                onclick="handleNavClick(event, 'geoLocation')"
+            >
                 🌍
                 <span>GeoLocation</span>
             </a>
 
-            <a href="#threatGraph" class="nav-item" onclick="handleNavClick(event, 'threatGraph')">
+            <a
+                href="#threatGraph"
+                class="nav-item"
+                onclick="handleNavClick(event, 'threatGraph')"
+            >
                 🕸️
                 <span>Threat Graph</span>
             </a>
 
         </nav>
 
-        <button class="logout-button" onclick="logout()">
+        <button
+            class="logout-button"
+            onclick="logout()"
+        >
             🚪 Logout
         </button>
 
     </aside>
 
 
-    <!-- ================= MAIN CONTENT ================= -->
+    <!-- =========================================================
+         MAIN CONTENT
+    ========================================================= -->
 
     <main class="main-content">
+
 
         <!-- HEADER -->
 
@@ -87,7 +1776,9 @@
                     FORENSIC INVESTIGATION PLATFORM
                 </div>
 
-                <h1>Email Threat Intelligence</h1>
+                <h1>
+                    Email Threat Intelligence
+                </h1>
 
                 <p>
                     AI-powered email threat detection and forensic investigation
@@ -95,23 +1786,41 @@
 
             </div>
 
+
             <div class="header-actions">
-                <button class="header-btn secondary" id="newScanBtn" onclick="resetInvestigation()" title="Reset current investigation">
+
+                <button
+                    class="header-btn secondary"
+                    id="newScanBtn"
+                    onclick="resetInvestigation()"
+                >
                     🔄 New Scan
                 </button>
-                <button class="header-btn primary" id="exportReportBtn" onclick="exportReport()" title="Export or print forensic investigation report">
+
+                <button
+                    class="header-btn primary"
+                    id="exportReportBtn"
+                    onclick="exportReport()"
+                >
                     📄 Export Report
                 </button>
+
                 <div class="system-status">
+
                     <span class="status-dot"></span>
+
                     System Online
+
                 </div>
+
             </div>
 
         </header>
 
 
-        <!-- ================= ANALYZE EMAIL ================= -->
+        <!-- =====================================================
+             ANALYZE EMAIL
+        ===================================================== -->
 
         <section class="section">
 
@@ -123,7 +1832,9 @@
 
                 <div>
 
-                    <h2>Analyze Suspicious Email</h2>
+                    <h2>
+                        Analyze Suspicious Email
+                    </h2>
 
                     <p>
                         Upload an .eml file to begin forensic analysis.
@@ -140,15 +1851,21 @@
                     📧
                 </div>
 
+
                 <div class="upload-description">
 
-                    <h3>Select Email Evidence</h3>
+                    <h3>
+                        Select Email Evidence
+                    </h3>
 
                     <p>
                         Upload a suspicious email file for automated analysis.
                     </p>
 
-                    <p id="analysisMessage" class="analysis-message"></p>
+                    <p
+                        id="analysisMessage"
+                        class="analysis-message"
+                    ></p>
 
                 </div>
 
@@ -175,9 +1892,14 @@
         </section>
 
 
-        <!-- ================= THREAT OVERVIEW ================= -->
+        <!-- =====================================================
+             THREAT OVERVIEW
+        ===================================================== -->
 
-        <section class="section" id="dashboard">
+        <section
+            class="section"
+            id="dashboard"
+        >
 
             <div class="section-heading">
 
@@ -187,7 +1909,9 @@
 
                 <div>
 
-                    <h2>Threat Overview</h2>
+                    <h2>
+                        Threat Overview
+                    </h2>
 
                     <p>
                         Overall security assessment of the analyzed email
@@ -200,7 +1924,6 @@
 
             <div class="stats-grid">
 
-                <!-- SCORE -->
 
                 <div class="stat-card">
 
@@ -213,8 +1936,15 @@
                     </div>
 
                     <div class="stat-value">
-                        <span id="threatScore">---</span>
-                        <small>/ 100</small>
+
+                        <span id="threatScore">
+                            ---
+                        </span>
+
+                        <small>
+                            / 100
+                        </small>
+
                     </div>
 
                     <div class="score-bar">
@@ -228,8 +1958,6 @@
 
                 </div>
 
-
-                <!-- VERDICT -->
 
                 <div class="stat-card">
 
@@ -258,8 +1986,6 @@
                 </div>
 
 
-                <!-- CONFIDENCE -->
-
                 <div class="stat-card">
 
                     <div class="stat-icon">
@@ -276,14 +2002,14 @@
                             ---
                         </span>
 
-                        <small>%</small>
+                        <small>
+                            %
+                        </small>
 
                     </div>
 
                 </div>
 
-
-                <!-- URLS -->
 
                 <div class="stat-card">
 
@@ -304,8 +2030,6 @@
 
                 </div>
 
-
-                <!-- IPS -->
 
                 <div class="stat-card">
 
@@ -331,7 +2055,9 @@
         </section>
 
 
-        <!-- ================= EMAIL FORENSICS ================= -->
+        <!-- =====================================================
+             EMAIL FORENSICS
+        ===================================================== -->
 
         <section
             class="section"
@@ -346,7 +2072,9 @@
 
                 <div>
 
-                    <h2>Email Forensics</h2>
+                    <h2>
+                        Email Forensics
+                    </h2>
 
                     <p>
                         Extracted email identity and suspicious indicators
@@ -365,37 +2093,83 @@
                     📋 Email Information
                 </div>
 
-
                 <div class="information-grid">
 
                     <div class="information-item">
-                        <strong>Sender</strong>
-                        <span id="sender">---</span>
+
+                        <strong>
+                            Sender
+                        </strong>
+
+                        <span id="sender">
+                            ---
+                        </span>
+
                     </div>
 
-                    <div class="information-item">
-                        <strong>Recipient</strong>
-                        <span id="recipient">---</span>
-                    </div>
 
                     <div class="information-item">
-                        <strong>Subject</strong>
-                        <span id="subject">---</span>
+
+                        <strong>
+                            Recipient
+                        </strong>
+
+                        <span id="recipient">
+                            ---
+                        </span>
+
                     </div>
 
-                    <div class="information-item">
-                        <strong>Date</strong>
-                        <span id="emailDate">---</span>
-                    </div>
 
                     <div class="information-item">
-                        <strong>Message ID</strong>
-                        <span id="messageId">---</span>
+
+                        <strong>
+                            Subject
+                        </strong>
+
+                        <span id="subject">
+                            ---
+                        </span>
+
                     </div>
 
+
                     <div class="information-item">
-                        <strong>Reply-To</strong>
-                        <span id="replyTo">---</span>
+
+                        <strong>
+                            Date
+                        </strong>
+
+                        <span id="emailDate">
+                            ---
+                        </span>
+
+                    </div>
+
+
+                    <div class="information-item">
+
+                        <strong>
+                            Message ID
+                        </strong>
+
+                        <span id="messageId">
+                            ---
+                        </span>
+
+                    </div>
+
+
+                    <div class="information-item">
+
+                        <strong>
+                            Reply-To
+                        </strong>
+
+                        <span id="replyTo">
+                            ---
+                        </span>
+
                     </div>
 
                 </div>
@@ -403,7 +2177,7 @@
             </div>
 
 
-            <!-- EMAIL AUTHENTICATION STATUS -->
+            <!-- AUTHENTICATION -->
 
             <div class="panel">
 
@@ -411,34 +2185,81 @@
                     🔐 Email Authentication (SPF, DKIM, DMARC)
                 </div>
 
-                <div class="auth-grid" id="authStatusPanel">
+                <div
+                    class="auth-grid"
+                    id="authStatusPanel"
+                >
 
                     <div class="auth-card">
-                        <div class="auth-label">SPF Check</div>
-                        <div id="spfStatus" class="auth-badge neutral">NOT CHECKED</div>
-                        <small class="auth-desc">Sender Policy Framework</small>
+
+                        <div class="auth-label">
+                            SPF Check
+                        </div>
+
+                        <div
+                            id="spfStatus"
+                            class="auth-badge neutral"
+                        >
+                            NOT CHECKED
+                        </div>
+
+                        <small class="auth-desc">
+                            Sender Policy Framework
+                        </small>
+
                     </div>
 
-                    <div class="auth-card">
-                        <div class="auth-label">DKIM Check</div>
-                        <div id="dkimStatus" class="auth-badge neutral">NOT CHECKED</div>
-                        <small class="auth-desc">Cryptographic Signature</small>
-                    </div>
 
                     <div class="auth-card">
-                        <div class="auth-label">DMARC Check</div>
-                        <div id="dmarcStatus" class="auth-badge neutral">NOT CHECKED</div>
-                        <small class="auth-desc">Domain Alignment Policy</small>
+
+                        <div class="auth-label">
+                            DKIM Check
+                        </div>
+
+                        <div
+                            id="dkimStatus"
+                            class="auth-badge neutral"
+                        >
+                            NOT CHECKED
+                        </div>
+
+                        <small class="auth-desc">
+                            Cryptographic Signature
+                        </small>
+
+                    </div>
+
+
+                    <div class="auth-card">
+
+                        <div class="auth-label">
+                            DMARC Check
+                        </div>
+
+                        <div
+                            id="dmarcStatus"
+                            class="auth-badge neutral"
+                        >
+                            NOT CHECKED
+                        </div>
+
+                        <small class="auth-desc">
+                            Domain Alignment Policy
+                        </small>
+
                     </div>
 
                 </div>
 
-                <div id="authDetails" class="auth-details-list"></div>
+                <div
+                    id="authDetails"
+                    class="auth-details-list"
+                ></div>
 
             </div>
 
 
-            <!-- ATTACHMENTS FORENSICS -->
+            <!-- ATTACHMENTS -->
 
             <div class="panel">
 
@@ -457,7 +2278,7 @@
             </div>
 
 
-            <!-- SUSPICIOUS INDICATORS -->
+            <!-- INDICATORS -->
 
             <div class="panel">
 
@@ -466,15 +2287,17 @@
                 </div>
 
                 <div id="indicators">
+
                     <div class="empty-state">
                         No analysis performed yet.
                     </div>
+
                 </div>
 
             </div>
 
 
-            <!-- EXTRACTED URLS -->
+            <!-- URLS -->
 
             <div class="panel">
 
@@ -493,7 +2316,7 @@
             </div>
 
 
-            <!-- EXTRACTED IPS -->
+            <!-- IPS -->
 
             <div class="panel">
 
@@ -551,7 +2374,9 @@
         </section>
 
 
-        <!-- ================= EMAIL CONTENT & EVIDENCE ================= -->
+        <!-- =====================================================
+             EMAIL CONTENT
+        ===================================================== -->
 
         <section
             class="section"
@@ -566,7 +2391,9 @@
 
                 <div>
 
-                    <h2>Email Content & Evidence</h2>
+                    <h2>
+                        Email Content & Evidence
+                    </h2>
 
                     <p>
                         Inspect the message body, HTML content, and raw email headers
@@ -618,21 +2445,40 @@
                         id="tabPlain"
                         class="tab-pane active"
                     >
-                        <pre id="emailBodyText" class="code-preview">No email analyzed yet.</pre>
+
+                        <pre
+                            id="emailBodyText"
+                            class="code-preview"
+                        >No email analyzed yet.</pre>
+
                     </div>
+
 
                     <div
                         id="tabHtml"
                         class="tab-pane"
                     >
-                        <div id="emailHtmlPreview" class="html-preview-frame">No HTML content available.</div>
+
+                        <div
+                            id="emailHtmlPreview"
+                            class="html-preview-frame"
+                        >
+                            No HTML content available.
+                        </div>
+
                     </div>
+
 
                     <div
                         id="tabHeaders"
                         class="tab-pane"
                     >
-                        <pre id="rawHeadersText" class="code-preview">No headers available.</pre>
+
+                        <pre
+                            id="rawHeadersText"
+                            class="code-preview"
+                        >No headers available.</pre>
+
                     </div>
 
                 </div>
@@ -642,7 +2488,9 @@
         </section>
 
 
-        <!-- ================= URL INTELLIGENCE ================= -->
+        <!-- =====================================================
+             URL INTELLIGENCE
+        ===================================================== -->
 
         <section
             class="section"
@@ -657,7 +2505,9 @@
 
                 <div>
 
-                    <h2>URL & Domain Intelligence</h2>
+                    <h2>
+                        URL & Domain Intelligence
+                    </h2>
 
                     <p>
                         Analysis of suspicious links and domains
@@ -683,7 +2533,9 @@
         </section>
 
 
-        <!-- ================= GEOLOCATION ================= -->
+        <!-- =====================================================
+             GEOLOCATION
+        ===================================================== -->
 
         <section
             class="section"
@@ -698,7 +2550,9 @@
 
                 <div>
 
-                    <h2>Infrastructure GeoLocation</h2>
+                    <h2>
+                        Infrastructure GeoLocation
+                    </h2>
 
                     <p>
                         Approximate network infrastructure associated with extracted IP addresses
@@ -724,7 +2578,9 @@
 
             <div class="forensic-note">
 
-                <strong>⚠️ Forensic Note</strong>
+                <strong>
+                    ⚠️ Forensic Note
+                </strong>
 
                 <p>
                     IP geolocation represents an approximate infrastructure
@@ -737,7 +2593,9 @@
         </section>
 
 
-        <!-- ================= THREAT GRAPH ================= -->
+        <!-- =====================================================
+             THREAT GRAPH
+        ===================================================== -->
 
         <section
             class="section"
@@ -752,7 +2610,9 @@
 
                 <div>
 
-                    <h2>Threat Relationship Graph</h2>
+                    <h2>
+                        Threat Relationship Graph
+                    </h2>
 
                     <p>
                         Relationships discovered from the analyzed email
@@ -767,7 +2627,10 @@
 
                 <div id="threatGraphContainer">
 
-                    <div class="graph-empty" id="graphEmptyState">
+                    <div
+                        class="graph-empty"
+                        id="graphEmptyState"
+                    >
 
                         <div class="graph-icon">
                             🕸️
@@ -812,7 +2675,9 @@
         </section>
 
 
-        <!-- ================= FOOTER ================= -->
+        <!-- =====================================================
+             FOOTER
+        ===================================================== -->
 
         <footer>
 
@@ -826,6 +2691,11 @@
 
     </main>
 
+
+    <!-- =========================================================
+         IMPORTANT:
+         KEEP YOUR EXISTING JAVASCRIPT
+    ========================================================= -->
 
     <script src="js/dashboard.js"></script>
 
