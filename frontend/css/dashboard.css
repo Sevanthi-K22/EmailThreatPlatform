@@ -1584,6 +1584,518 @@ footer {
         height: 380px;
         min-height: 380px;
     }
+/* =========================================================
+   CRYPTOGRAPHIC EVIDENCE INTEGRITY BANNER
+   ========================================================= */
+
+.hashes-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-top: 14px;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, rgba(14, 25, 45, 0.95), rgba(7, 14, 28, 0.95));
+    border: 1px solid rgba(37, 143, 255, 0.25);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.hash-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.hash-tag {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    color: var(--cyan);
+}
+
+.hash-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #cbd5e1;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    word-break: break-all;
+}
+
+/* =========================================================
+   PRETRAINED ML PHISHING CLASSIFIER CARD
+   ========================================================= */
+
+.ml-model-card {
+    background: linear-gradient(145deg, #0e1c36 0%, #091326 100%);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: var(--radius-lg);
+    padding: 22px 26px;
+    margin-top: 24px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+    position: relative;
+    overflow: hidden;
+}
+
+.ml-model-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #8b5cf6, #258fff, #00d2ff);
+}
+
+.ml-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ml-card-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.ml-card-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: rgba(139, 92, 246, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.ml-card-title h3 {
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+}
+
+.ml-sub {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+}
+
+.ml-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ml-provider-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(37, 143, 255, 0.12);
+    border: 1px solid rgba(37, 143, 255, 0.3);
+    color: var(--cyan);
+}
+
+.ml-verdict-badge {
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 6px;
+    letter-spacing: 0.8px;
+}
+
+.ml-verdict-badge.phishing {
+    background: var(--red-bg);
+    border: 1px solid var(--red-border);
+    color: var(--red);
+}
+
+.ml-verdict-badge.suspicious {
+    background: var(--yellow-bg);
+    border: 1px solid var(--yellow-border);
+    color: var(--yellow);
+}
+
+.ml-verdict-badge.clean {
+    background: var(--green-bg);
+    border: 1px solid var(--green-border);
+    color: var(--green);
+}
+
+.ml-explanation {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.ml-features-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ml-features-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+}
+
+.ml-features-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ml-feature-chip {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 14px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ml-chip-none {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* =========================================================
+   VISUAL MTA RELAY TRANSIT FLOWCHART
+   ========================================================= */
+
+.relay-map-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 16px 0;
+}
+
+.relay-flow-node {
+    display: flex;
+    align-items: stretch;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    gap: 16px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.relay-flow-node:hover {
+    transform: translateY(-2px);
+    border-color: var(--cyan);
+}
+
+.relay-flow-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 14px;
+    color: #ffffff;
+    flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(37, 143, 255, 0.4);
+}
+
+.relay-flow-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-grow: 1;
+}
+
+.relay-flow-type {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--cyan);
+}
+
+.relay-flow-hosts {
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e2e8f0;
+    word-break: break-all;
+}
+
+.relay-flow-hosts strong {
+    color: #ffffff;
+}
+
+.relay-flow-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.relay-flow-tag {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.relay-flow-tag.ip {
+    background: rgba(37, 143, 255, 0.12);
+    border: 1px solid rgba(37, 143, 255, 0.3);
+    color: var(--cyan);
+}
+
+.relay-flow-tag.proto {
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #94a3b8;
+}
+
+.relay-flow-tag.delay {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: var(--yellow);
+}
+
+.relay-flow-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cyan);
+    font-size: 18px;
+    margin: -6px 0;
+    opacity: 0.7;
+}
+
+/* =========================================================
+   DOMAIN INTELLIGENCE & DNS AUDIT
+   ========================================================= */
+
+.domain-audit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.domain-audit-stat {
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.domain-audit-stat .audit-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.domain-audit-stat .audit-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.domain-audit-findings {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.domain-finding-pill {
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.domain-finding-pill.danger {
+    background: var(--red-bg);
+    border: 1px solid var(--red-border);
+    color: var(--red);
+}
+
+.domain-finding-pill.warning {
+    background: var(--yellow-bg);
+    border: 1px solid var(--yellow-border);
+    color: var(--yellow);
+}
+
+.domain-finding-pill.clean {
+    background: var(--green-bg);
+    border: 1px solid var(--green-border);
+    color: var(--green);
+}
+
+/* =========================================================
+   IP THREAT BADGES (VPN / PROXY / TOR / HOSTING)
+   ========================================================= */
+
+.ip-threat-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.badge-tor {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid var(--red);
+    color: var(--red);
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.badge-vpn {
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.badge-proxy {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.badge-hosting {
+    background: rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    color: #c4b5fd;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.badge-clean {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid var(--green-border);
+    color: var(--green);
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+/* =========================================================
+   REAL-TIME WEBSOCKET ALERT TOAST NOTIFICATIONS
+   ========================================================= */
+
+.alert-toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 380px;
+    pointer-events: none;
+}
+
+.alert-toast {
+    background: linear-gradient(135deg, #1e112a 0%, #11091a 100%);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    border-left: 5px solid var(--red);
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    animation: toastSlideIn 0.35s ease forwards;
+    color: #ffffff;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.alert-toast.warning {
+    border-left-color: var(--yellow);
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.alert-toast-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.alert-toast-title {
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.alert-toast-title.critical {
+    color: var(--red);
+}
+
+.alert-toast-title.warning {
+    color: var(--yellow);
+}
+
+.alert-toast-time {
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+.alert-toast-body {
+    font-size: 12px;
+    color: #cbd5e1;
+    line-height: 1.4;
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 /* =========================================================

@@ -5,7 +5,7 @@ const { analyzeURLs } = require("./urlAnalyzer");
 // THREAT ANALYSIS ENGINE
 // ======================================================
 
-function analyzeThreat(email) {
+function analyzeThreat(email, extra = {}) {
 
     let score = 0;
 
@@ -106,12 +106,28 @@ function analyzeThreat(email) {
 
 
     const authentication =
+        extra.authValidation ||
         email.authentication || {
             spf: "NOT CONFIGURED",
             dkim: "NOT CONFIGURED",
             dmarc: "NOT CONFIGURED",
             details: []
         };
+
+    const mlAnalysis =
+        extra.mlAnalysis ||
+        email.mlAnalysis ||
+        null;
+
+    const domainAnalysis =
+        extra.domainAnalysis ||
+        email.domainAnalysis ||
+        null;
+
+    const ipAnalysisList =
+        extra.ipAnalysis ||
+        email.ipAnalysis ||
+        [];
 
 
     const linkMismatches =
@@ -965,6 +981,97 @@ function analyzeThreat(email) {
                 `Deceptive link detected: displayed text indicates "${mismatch.displayedDomain}", but destination URL points to "${mismatch.actualDomain}".`
             );
         });
+    }
+
+
+    // ==================================================
+    // 19. PRETRAINED ML PHISHING DETECTION
+    // ==================================================
+
+    if (mlAnalysis) {
+        if (mlAnalysis.verdict === "PHISHING") {
+            addFinding(
+                "ML_PHISHING_CONFIRMED",
+                "HIGH",
+                25,
+                `Transformer / ML phishing detection engine classified message as PHISHING with ${(mlAnalysis.confidence * 100).toFixed(0)}% confidence (${mlAnalysis.model}).`
+            );
+        } else if (mlAnalysis.verdict === "SUSPICIOUS") {
+            addFinding(
+                "ML_SUSPICIOUS_CONTENT",
+                "MEDIUM",
+                15,
+                `ML feature analysis flagged elevated linguistic and social engineering suspicion (${mlAnalysis.score}/100).`
+            );
+        }
+    }
+
+
+    // ==================================================
+    // 20. DOMAIN INTELLIGENCE & DNS RECORD AUDIT
+    // ==================================================
+
+    if (domainAnalysis) {
+        if (!domainAnalysis.hasMx && domainAnalysis.valid !== false) {
+            addFinding(
+                "DOMAIN_MISSING_MX_RECORDS",
+                "HIGH",
+                25,
+                `Sender domain '${domainAnalysis.domain}' has no valid MX records in public DNS. This is a critical indicator of unauthorized or disposable mail delivery infrastructure.`
+            );
+        }
+
+        if (domainAnalysis.isHighRiskTld) {
+            addFinding(
+                "HIGH_RISK_TLD",
+                "MEDIUM",
+                15,
+                `Sender domain uses high-abuse top-level domain (.${domainAnalysis.tld}) commonly leveraged in disposable phishing campaigns.`
+            );
+        }
+
+        if (domainAnalysis.lookalike && domainAnalysis.lookalike.isLookalike) {
+            addFinding(
+                "TYPOSQUATTING_DOMAIN_SPOOF",
+                "HIGH",
+                30,
+                `Typosquatting / brand impersonation detected targeting '${domainAnalysis.lookalike.targetBrand}' via ${domainAnalysis.lookalike.method}.`
+            );
+        }
+    }
+
+
+    // ==================================================
+    // 21. INFRASTRUCTURE ANONYMIZATION (VPN / PROXY / TOR)
+    // ==================================================
+
+    if (Array.isArray(ipAnalysisList) && ipAnalysisList.length > 0) {
+        const torIPs = ipAnalysisList.filter(i => i.isTor);
+        const vpnIPs = ipAnalysisList.filter(i => i.isVpn);
+        const proxyIPs = ipAnalysisList.filter(i => i.isProxy && !i.isTor && !i.isVpn);
+
+        if (torIPs.length > 0) {
+            addFinding(
+                "TOR_EXIT_NODE_INFRASTRUCTURE",
+                "HIGH",
+                35,
+                `Transmitting MTA or extracted IP (${torIPs.map(i => i.ip).join(", ")}) matches known Tor anonymization network exit node.`
+            );
+        } else if (vpnIPs.length > 0) {
+            addFinding(
+                "VPN_ANONYMIZED_INFRASTRUCTURE",
+                "HIGH",
+                20,
+                `Transmitting infrastructure IP (${vpnIPs.map(i => i.ip).join(", ")}) associated with commercial VPN / anonymization service.`
+            );
+        } else if (proxyIPs.length > 0) {
+            addFinding(
+                "OPEN_PROXY_RELAY_INFRASTRUCTURE",
+                "HIGH",
+                20,
+                `Transmitting infrastructure IP (${proxyIPs.map(i => i.ip).join(", ")}) flagged as public proxy / relay node.`
+            );
+        }
     }
 
 

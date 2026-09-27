@@ -262,6 +262,12 @@ async function analyzeSingleIP(ip) {
             ip: cleanIP,
             status: "SKIPPED",
             type: "Private / Reserved IPv4",
+            isProxy: false,
+            isVpn: false,
+            isTor: false,
+            isHosting: false,
+            ipRiskScore: 0,
+            threatType: "Internal / RFC1918 Reserved",
             message:
                 "This IP belongs to a private, reserved, loopback, " +
                 "documentation, multicast, or special-purpose range."
@@ -276,12 +282,7 @@ async function analyzeSingleIP(ip) {
     try {
 
         /*
-        Request only the fields needed by our application.
-
-        NOTE:
-        This endpoint is HTTP-based. For a production deployment,
-        we should later move to a paid HTTPS/API-key service or
-        another provider with appropriate production terms.
+        Request extended fields including proxy, hosting, mobile, and AS metadata
         */
 
         const response = await axios.get(
@@ -289,7 +290,7 @@ async function analyzeSingleIP(ip) {
             {
                 params: {
                     fields:
-                        "status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query"
+                        "status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,mobile,proxy,hosting,query"
                 },
 
                 timeout: 5000
@@ -309,6 +310,12 @@ async function analyzeSingleIP(ip) {
                 ip: cleanIP,
                 status: "UNKNOWN",
                 type: "Public IPv4",
+                isProxy: false,
+                isVpn: false,
+                isTor: false,
+                isHosting: false,
+                ipRiskScore: 20,
+                threatType: "Unresolved Infrastructure",
                 message:
                     data?.message ||
                     "Unable to retrieve geolocation information."
@@ -316,6 +323,44 @@ async function analyzeSingleIP(ip) {
 
         }
 
+        // Infrastructure classification
+        const org = String(data.org || "").toLowerCase();
+        const isp = String(data.isp || "").toLowerCase();
+        const asStr = String(data.as || data.asname || "").toLowerCase();
+        const combined = `${org} ${isp} ${asStr}`;
+
+        const torKeywords = ["tor exit", "tor-exit", "torservers", "the onion router", "tor node"];
+        const vpnKeywords = ["nordvpn", "expressvpn", "surfshark", "mullvad", "private internet access", "cyberghost", "proton", "windscribe", "torguard", "tunnelbear", "ipvanish", "vpn"];
+        const hostingKeywords = ["amazon", "aws", "digitalocean", "ovh", "hetzner", "linode", "akamai", "google cloud", "azure", "vultr", "choopa", "leaseweb", "oracle cloud", "alibaba", "tencent", "fastly", "cloudflare", "datapacket", "m247"];
+
+        const matchesTor = torKeywords.some(k => combined.includes(k));
+        const matchesVpn = vpnKeywords.some(k => combined.includes(k));
+        const matchesHosting = hostingKeywords.some(k => combined.includes(k));
+
+        const apiProxy = Boolean(data.proxy);
+        const apiHosting = Boolean(data.hosting);
+
+        const isTor = matchesTor;
+        const isVpn = !isTor && (matchesVpn || (apiProxy && !apiHosting));
+        const isProxy = apiProxy || matchesVpn || matchesTor;
+        const isHosting = apiHosting || matchesHosting;
+
+        let ipRiskScore = 5;
+        let threatType = "Residential / Commercial ISP";
+
+        if (isTor) {
+            ipRiskScore = 95;
+            threatType = "Tor Anonymization Exit Node";
+        } else if (isVpn) {
+            ipRiskScore = 75;
+            threatType = "Commercial VPN / Anonymizer";
+        } else if (isProxy) {
+            ipRiskScore = 70;
+            threatType = "Open Proxy / Relay";
+        } else if (isHosting) {
+            ipRiskScore = 40;
+            threatType = "Datacenter / Cloud Infrastructure";
+        }
 
         /*
         Successful geolocation result
@@ -368,6 +413,27 @@ async function analyzeSingleIP(ip) {
             autonomousSystem:
                 data.as || "Unknown",
 
+            asName:
+                data.asname || "",
+
+            isProxy:
+                isProxy,
+
+            isVpn:
+                isVpn,
+
+            isTor:
+                isTor,
+
+            isHosting:
+                isHosting,
+
+            threatType:
+                threatType,
+
+            ipRiskScore:
+                ipRiskScore,
+
             query:
                 data.query || cleanIP,
 
@@ -400,6 +466,18 @@ async function analyzeSingleIP(ip) {
             status: "ERROR",
 
             type: "Public IPv4",
+
+            isProxy: false,
+
+            isVpn: false,
+
+            isTor: false,
+
+            isHosting: false,
+
+            ipRiskScore: 10,
+
+            threatType: "Unresolved Infrastructure",
 
             message:
                 "Geolocation service could not be reached.",

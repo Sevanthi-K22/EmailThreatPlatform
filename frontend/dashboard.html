@@ -96,7 +96,7 @@
                 </button>
 
                 <button class="header-btn primary" id="exportReportBtn" onclick="exportReport()">
-                    📄 Export Report
+                    📄 Download Forensic PDF
                 </button>
 
                 <div class="system-status">
@@ -134,6 +134,22 @@
                     <button id="analyzeButton" onclick="analyzeEmail()">
                         🔍 Analyze Email
                     </button>
+                </div>
+            </div>
+
+            <!-- CRYPTOGRAPHIC EVIDENCE INTEGRITY BANNER -->
+            <div class="hashes-banner" id="evidenceHashesBanner" style="display: none;">
+                <div class="hash-block">
+                    <span class="hash-tag">SHA-256:</span>
+                    <span class="hash-code" id="evidenceSha256">---</span>
+                </div>
+                <div class="hash-block">
+                    <span class="hash-tag">MD5:</span>
+                    <span class="hash-code" id="evidenceMd5">---</span>
+                </div>
+                <div class="hash-block">
+                    <span class="hash-tag">SIZE:</span>
+                    <span class="hash-code" id="evidenceFileSize">---</span>
                 </div>
             </div>
         </section>
@@ -201,6 +217,30 @@
                     <div class="stat-label">IP Addresses</div>
                     <div id="ipCount" class="stat-value">---</div>
                     <div class="stat-description">Body & Header infrastructure</div>
+                </div>
+            </div>
+
+            <!-- PRETRAINED ML PHISHING DETECTION MODEL CARD -->
+            <div class="ml-model-card" id="mlModelCard" style="display: none;">
+                <div class="ml-card-header">
+                    <div class="ml-card-title">
+                        <div class="ml-card-icon">🤖</div>
+                        <div>
+                            <h3>Pretrained Machine Learning Phishing Classifier</h3>
+                            <span class="ml-sub" id="mlModelName">BERT PhishLens Transformer Ensemble</span>
+                        </div>
+                    </div>
+                    <div class="ml-badges">
+                        <span class="ml-provider-badge" id="mlProviderBadge">On-Premises Neural Engine</span>
+                        <div class="ml-verdict-badge" id="mlVerdictBadge">CLEAN</div>
+                    </div>
+                </div>
+                <p class="ml-explanation" id="mlExplanation">Awaiting email analysis...</p>
+                <div class="ml-features-container">
+                    <span class="ml-features-label">Detected Linguistic Threat Features:</span>
+                    <div class="ml-features-list" id="mlFeaturesList">
+                        <span class="ml-chip-none">None detected</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -315,14 +355,19 @@
 
             <!-- HEADER FORENSICS -->
             <div class="panel">
-                <div class="panel-title">🧬 Email Header Forensics</div>
+                <div class="panel-title">🧬 Email Header Forensics & Visual MTA Relay Path</div>
 
-                <h3 class="sub-heading">Email Relay Path (Hops)</h3>
+                <h3 class="sub-heading">Visual MTA Relay Transit Flowchart</h3>
+                <div id="visualRelayMap" class="relay-map-flow">
+                    <div class="empty-state">Upload and analyze an email to render the visual relay trace flowchart.</div>
+                </div>
+
+                <h3 class="sub-heading" style="margin-top: 24px;">Relay Transit Hops (Reverse Chronological)</h3>
                 <div id="relayPath">
                     <div class="empty-state">No header information available.</div>
                 </div>
 
-                <h3 class="sub-heading">IPs Discovered in Email Headers</h3>
+                <h3 class="sub-heading" style="margin-top: 24px;">IPs Discovered in Email Headers</h3>
                 <div id="headerIPs">
                     <div class="empty-state">No header IPs detected.</div>
                 </div>
@@ -388,6 +433,30 @@
                     <h2>URL & Domain Intelligence</h2>
                     <p>Deep inspection of suspicious links, domain spoofing, brand impersonation, and risk telemetry</p>
                 </div>
+            </div>
+
+            <!-- SENDER DOMAIN & DNS INTELLIGENCE AUDIT -->
+            <div class="panel" id="domainAuditPanel" style="display: none; margin-bottom: 20px;">
+                <div class="panel-title">🌐 Sender Domain & DNS Infrastructure Audit</div>
+                <div class="domain-audit-grid">
+                    <div class="domain-audit-stat">
+                        <span class="audit-label">Target Domain</span>
+                        <span class="audit-value" id="auditDomainName">—</span>
+                    </div>
+                    <div class="domain-audit-stat">
+                        <span class="audit-label">MX Records (Mail Servers)</span>
+                        <span class="audit-value" id="auditMxStatus">—</span>
+                    </div>
+                    <div class="domain-audit-stat">
+                        <span class="audit-label">TLD Risk Score</span>
+                        <span class="audit-value" id="auditTldStatus">—</span>
+                    </div>
+                    <div class="domain-audit-stat">
+                        <span class="audit-label">Brand Lookalike Spoofing</span>
+                        <span class="audit-value" id="auditLookalikeStatus">—</span>
+                    </div>
+                </div>
+                <div class="domain-audit-findings" id="auditFindingsList"></div>
             </div>
 
             <div id="urlAnalysis">
@@ -468,8 +537,11 @@
             Email Threat Intelligence &nbsp;•&nbsp; SOC Forensic Center &nbsp;•&nbsp; Production Model
         </footer>
 
-    </main>
+    <!-- REAL-TIME THREAT ALERT TOAST CONTAINER -->
+    <div class="alert-toast-container" id="alertToastContainer"></div>
 
+    <!-- SOCKET.IO CLIENT ENGINE -->
+    <script src="/socket.io/socket.io.js"></script>
     <!-- DASHBOARD JAVASCRIPT ENGINE -->
     <script src="js/dashboard.js"></script>
 

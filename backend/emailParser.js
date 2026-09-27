@@ -1,4 +1,5 @@
 const { simpleParser } = require("mailparser");
+const crypto = require("crypto");
 
 
 // ======================================================
@@ -110,10 +111,101 @@ function extractLinkMismatches(html) {
 
 
 // ======================================================
+// HELPER: PARSE STRUCTURED MTA RELAY TRACE
+// ======================================================
+
+function parseRelayTrace(safeReceived) {
+    if (!Array.isArray(safeReceived) || safeReceived.length === 0) {
+        return [];
+    }
+
+    // Reverse to establish chronological transit order:
+    // Hop 1 = Earliest origin MTA / Client submission
+    // Hop N = Final destination MX receiver
+    const reversed = [...safeReceived].reverse();
+    const hops = [];
+
+    for (let i = 0; i < reversed.length; i++) {
+        const headerStr = reversed[i];
+        const hopNumber = i + 1;
+
+        // Extract 'from' host
+        const fromMatch = headerStr.match(/from\s+([^\s;()]+(?:\s*\([^)]*\))?)/i);
+        const fromHost = fromMatch ? fromMatch[1].trim() : "Unknown";
+
+        // Extract 'by' host
+        const byMatch = headerStr.match(/by\s+([^\s;]+)/i);
+        const byHost = byMatch ? byMatch[1].trim() : "Unknown";
+
+        // Extract IP address from bracket or raw notation
+        const ipMatch = headerStr.match(/\[((?:\d{1,3}\.){3}\d{1,3})\]/) ||
+                        headerStr.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);
+        const ip = ipMatch ? (ipMatch[1] || ipMatch[0]) : null;
+
+        // Extract protocol
+        const protoMatch = headerStr.match(/with\s+([A-Za-z0-9_-]+)/i);
+        const protocol = protoMatch ? protoMatch[1].toUpperCase() : "SMTP";
+
+        // Extract timestamp after semicolon
+        let timestamp = null;
+        let delaySeconds = 0;
+        const semiIndex = headerStr.lastIndexOf(";");
+        if (semiIndex !== -1) {
+            const rawDate = headerStr.substring(semiIndex + 1).trim();
+            const parsedDate = new Date(rawDate);
+            if (!isNaN(parsedDate.getTime())) {
+                timestamp = parsedDate.toISOString();
+                if (hops.length > 0 && hops[hops.length - 1].timestamp) {
+                    const prevDate = new Date(hops[hops.length - 1].timestamp);
+                    const diff = Math.round((parsedDate.getTime() - prevDate.getTime()) / 1000);
+                    delaySeconds = Math.max(0, diff);
+                }
+            }
+        }
+
+        let hopType = "Transit Relay MTA";
+        if (hopNumber === 1) {
+            hopType = "Origin MTA / Submitting Client";
+        } else if (hopNumber === reversed.length) {
+            hopType = "Destination Inbound Gateway";
+        }
+
+        hops.push({
+            hop: hopNumber,
+            type: hopType,
+            from: fromHost,
+            by: byHost,
+            ip: ip,
+            protocol: protocol,
+            timestamp: timestamp,
+            delaySeconds: delaySeconds,
+            raw: headerStr
+        });
+    }
+
+    return hops;
+}
+
+
+// ======================================================
 // EMAIL PARSER
 // ======================================================
 
 async function parseEmail(fileBuffer) {
+
+    // ==================================================
+    // FORENSIC CRYPTOGRAPHIC HASHES
+    // ==================================================
+
+    const sha256 = crypto.createHash("sha256").update(fileBuffer).digest("hex");
+    const md5 = crypto.createHash("md5").update(fileBuffer).digest("hex");
+    const sha1 = crypto.createHash("sha1").update(fileBuffer).digest("hex");
+    const hashes = {
+        sha256: sha256,
+        md5: md5,
+        sha1: sha1,
+        sizeBytes: fileBuffer.length
+    };
 
     // ==================================================
     // PARSE EMAIL
@@ -595,7 +687,13 @@ async function parseEmail(fileBuffer) {
             authentication,
 
         linkMismatches:
-            linkMismatches
+            linkMismatches,
+
+        hashes:
+            hashes,
+
+        relayTrace:
+            parseRelayTrace(safeReceived)
 
     };
 
